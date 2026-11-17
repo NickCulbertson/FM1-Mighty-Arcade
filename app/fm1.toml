@@ -1,0 +1,21 @@
+# Mighty Arcade: a prototype on fm1-base (tools/build.py), from Mighty Arp's stack
+name = "MightyArcade"
+id_prefix = "FM-1_6281"
+usb_manufacturer = "Nick Culbertson"
+usb_product = "Mighty Arcade FM-1"
+o2 = ["dsp/engine.c"]          # the sound, compiled at -O2 (the unity build is -Os)
+words = "words.tsv"
+ble = false
+cpu2 = true                    # the second core renders part of the voices
+cpu2_fallback = true
+tagline = "A box of casual games that make music"
+repo = ""
+licence = "MPL-2.0"
+credits = "Built on fm1-base by Charles Vestal and felucca-bsp; the sound engine is Mighty Arp's"
+title = "Mighty Arcade"
+author = "Moby Pixel"
+description = "Mighty Arcade, from the creator of Mighty Arp: seventeen casual games, from chess and solitaire to pinball and arcade classics, every one a sequencer. Each move, each card, each cleared row plays the music. One player or two."
+tags = ["synth"]
+install = ""
+site = ""
+screenshot = ""

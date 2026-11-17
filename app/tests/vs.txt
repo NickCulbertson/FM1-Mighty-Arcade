@@ -1,0 +1,52 @@
+# YOU VS CPU with the cursor: C left (7), E right (11), C# up (8), D down (9), A select (16); octaves too
+wait 500
+# the menu: CHESS is first; A starts it
+expect mode 0
+expect menu_to_CHESS 1
+tapkey 16
+expect mode_is_CHESS 1
+expect depth 1
+expect vs 1
+wait 300
+expect cur 20
+# 1. e4: A picks the e-pawn, up twice, A plays it
+tapkey 16
+expect from 20
+tapkey 8
+tapkey 8
+shot vs1.png
+tapkey 16
+wait 1200
+expect ply 1
+wait 3400
+expect ply 2
+# 2. Nf3: from e4 to g1 (right 2, down 3, using the other octave's keys too), pick, left, up 2, play
+tapkey 11
+tapkey 23
+tapkey 9
+tapkey 21
+tapkey 9
+expect cur 6
+tapkey 16
+expect from 6
+# h1 (the rook, which cannot move): refused, the knight still picked
+tapkey 11
+tapkey 16
+expect from 6
+# left 2 to f1, up 2 to f3
+tapkey 7
+tapkey 7
+tapkey 8
+tapkey 8
+shot vs2.png
+tapkey 16
+wait 1200
+expect ply 3
+wait 3400
+expect ply 4
+# the cursor is on the knight that just moved: A picks it, OCT- lets it go
+tapkey 16
+expect from 37
+tap OCT-
+expect from -1
+shot vs3.png

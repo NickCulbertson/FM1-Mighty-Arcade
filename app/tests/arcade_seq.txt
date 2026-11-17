@@ -1,0 +1,33 @@
+# BRICK BREAK and STAR SWARM as sequencers (seq.h): the playhead plays the wall's columns and the swarm's, the drums
+# come in as you clear them, and the swarm marches on the beat, quicker as it thins (tests/run_tests.sh)
+wait 600
+expect menu_to_BOUNCE 1
+tapkey 16
+expect mode_is_BOUNCE 1
+wait 6000
+expect br_seq >6
+expect br_tier 0
+shot brick_seq.png
+expect br_clear20 0
+wait 2500
+expect br_tier 2
+expect br_clear10 0
+wait 2500
+expect br_tier 4
+tap HOME
+wait 300
+expect menu_to_SWARM 1
+tapkey 16
+expect mode_is_SWARM 1
+wait 3000
+expect sw_left >10
+expect sw_steps >2
+expect sw_tier 0
+expect sw_kill4 0
+wait 3000
+expect sw_jar 4
+expect sw_seq >1
+expect sw_kill20 0
+wait 2000
+expect sw_tier >2
+shot swarm_seq_thin.png

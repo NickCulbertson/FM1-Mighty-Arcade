@@ -1,0 +1,157 @@
+# the six new games, one player, then two players taking turns
+wait 600
+shot grid.png
+# --- SNAKE (bottom row, left): D D, A
+expect menu_to_WORM 1
+tapkey 16
+expect mode_is_WORM 1
+wait 2500
+tapkey 9
+wait 1500
+tapkey 11
+wait 3000
+shot snake1.png
+wait 15000
+expect sn_over 1
+shot snake2.png
+tap HOME
+# --- DICE SYNTH: right of SNAKE; PLAY rolls (a new sound; a one on the die curses it), the keys play it, a lock
+# keeps a part, SAVE keeps it; SEL doesn't roll
+expect menu_to_DICE_SYNTH 1
+tapkey 16
+expect mode_is_DICE_SYNTH 1
+expect dc_rolls 0
+tap PLAY
+wait 800
+expect dc_rolls 1
+shot dice1.png
+key 12 down
+wait 400
+key 12 up
+tap EDIT
+expect dc_locks 1
+tap PLAY
+wait 600
+expect dc_rolls 2
+tap SAVE
+expect dc_nfav 1
+tap EDIT
+expect dc_locks 0
+tap SEL
+wait 600
+expect dc_rolls 2
+tap PLAY
+wait 600
+expect dc_rolls 3
+shot dice2.png
+tap HOME
+expect mode 0
+# --- DEFUSE: right again; open the middle (a tap), flag a square (a hold)
+expect menu_to_DEFUSE 1
+tapkey 16
+expect mode_is_DEFUSE 1
+tapkey 16
+wait 600
+expect mi_opened >5
+tapkey 7
+tapkey 7
+key 16 down
+wait 600
+key 16 up
+wait 500
+shot mines1.png
+tap HOME
+# --- 2048: up from DEFUSE
+expect menu_to_2048 1
+tapkey 16
+expect mode_is_2048 1
+tapkey 7
+tapkey 11
+tapkey 8
+tapkey 9
+tapkey 7
+tapkey 9
+tapkey 7
+tapkey 9
+wait 300
+shot t2048.png
+tap HOME
+# --- CHECKERS: up from 2048 is 4 IN A ROW; left of it
+expect menu_to_CHECKERS 1
+tapkey 16
+expect mode_is_CHECKERS 1
+expect ck_side 1
+# the cursor starts on c3 (row 2, col 2): pick it, up-right to d4, A
+tapkey 16
+tapkey 8
+tapkey 11
+tapkey 16
+wait 3000
+expect ck_side 1
+shot check1.png
+tap HOME
+# --- FOUR IN A ROW: right of checkers
+expect menu_to_ROWS 1
+tapkey 16
+expect mode_is_ROWS 1
+tapkey 16
+wait 2500
+expect f_side 1
+tapkey 16
+wait 2500
+shot four1.png
+tap HOME
+# --- two players: up to the switch (from a top-row tile), A
+expect menu_to_BOUNCE 1
+tapkey 8
+expect menu_at 0
+tapkey 16
+expect players 2
+shot grid2.png
+# four in a row for two: no computer
+expect menu_to_ROWS 1
+tapkey 16
+expect mode_is_ROWS 1
+tapkey 16
+wait 800
+expect f_side -1
+tapkey 7
+tapkey 16
+wait 800
+expect f_side 1
+shot four2.png
+tap HOME
+# chess for two: P1 e4, then P2 (black) moves e5 with the same keys
+expect menu_to_CHESS 1
+tapkey 16
+expect mode_is_CHESS 1
+expect vs 2
+tapkey 16
+tapkey 8
+tapkey 8
+tapkey 16
+wait 1500
+expect ply 1
+tapkey 8
+tapkey 8
+tapkey 8
+tapkey 16
+tapkey 9
+tapkey 9
+tapkey 16
+wait 1500
+expect ply 2
+shot chess2p.png
+tap HOME
+# snake for two: P1 crashes, P2's turn, P2 crashes, the results
+expect menu_to_WORM 1
+tapkey 16
+expect mode_is_WORM 1
+wait 9000
+expect tp_phase 1
+shot turn.png
+tapkey 16
+expect tp_turn 1
+wait 9000
+expect tp_phase 2
+shot results.png

@@ -1,0 +1,23 @@
+# CUBE DROP's clears: each one a pad chord, a different one, the bass following
+wait 600
+expect menu_to_CUBES 1
+tapkey 16
+expect mode_is_CUBES 1
+wait 1000
+wav clears.wav
+expect cu_harm 0
+expect cu_fill1 0
+wait 600
+expect cu_lines 1
+expect cu_harm >0
+wait 2600
+expect cu_fill2 0
+wait 3000
+expect cu_fill3 0
+wait 3000
+expect cu_fill4 0
+wait 600
+expect cu_lines 10
+shot clears.png
+wait 3000
+wavstop

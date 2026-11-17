@@ -1,0 +1,27 @@
+# MINI GOLF: from page 2's bottom-left tile; the press that starts it doesn't putt; hole 1 aims at the cup (a bumper in
+# the way now: no straight line to any cup); a putt; on to hole 2
+wait 600
+expect menu_to_GOLF 1
+tapkey 16
+expect mode_is_GOLF 1
+expect gf_phase 6
+shot golf_courses.png
+wait 400
+tapkey 16
+wait 2100
+expect gf_strokes 0
+expect gf_phase 0
+key 16 down
+wait 422
+key 16 up
+wait 200
+expect gf_phase 1
+shot golf0.png
+wait 4000
+expect gf_strokes 1
+shot golf1.png
+expect gf_next 1
+wait 300
+expect gf_hole 1
+expect gf_phase 0
+shot golf2.png

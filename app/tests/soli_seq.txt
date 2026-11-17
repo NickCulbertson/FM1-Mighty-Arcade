@@ -1,0 +1,19 @@
+# SOLITAIRE as a sequencer: the playhead sweeps the columns; the drums come in as the cards go home; EFFECTS (K4)
+wait 600
+expect menu_to_SOLITAIRE 1
+tapkey 16
+expect mode_is_SOLITAIRE 1
+wait 9000
+expect so_seq >4
+expect so_tier 0
+shot soliseq0.png
+expect so_home6 0
+wait 3500
+expect so_tier 1
+expect so_home22 0
+wait 3500
+expect so_tier 3
+expect so_home44 0
+wait 3500
+expect so_tier 5
+shot soliseq5.png

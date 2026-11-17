@@ -1,0 +1,81 @@
+# NOTE DROP and BOUNCE BOX, the music toys (toys.h): keys drop balls down the board, onto the floor's bars; balls
+# bounce round a box of note tiles; both light as they play (tests/run_tests.sh)
+wait 600
+shot page4.png
+expect menu_to_DROP 1
+tapkey 16
+expect mode_is_DROP 1
+wait 300
+expect dp_balls 0
+expect dp_lit 0
+# a row of keys: balls from all along the top, down the board
+key 0 down 100
+wait 40
+key 0 up
+key 5 down 100
+wait 40
+key 5 up
+key 10 down 100
+wait 40
+key 10 up
+key 15 down 100
+wait 40
+key 15 up
+key 20 down 100
+wait 40
+key 20 up
+key 26 down 100
+wait 40
+key 26 up
+wait 300
+expect dp_balls 6
+shot drop_falling.png
+wait 1200
+expect dp_lit >1
+shot drop.png
+wait 3000
+expect dp_floor >1
+expect dp_score >0
+# SELECT: the boards (K1..K4 tilt the platforms)
+spin SELECT -10
+wait 300
+expect dp_board 0
+spin SELECT 2
+wait 300
+expect dp_board 2
+expect dp_lit 0
+shot drop_pins.png
+tap HOME
+wait 300
+expect menu_to_DODGE 1
+tapkey 16
+expect mode_is_DODGE 1
+wait 600
+expect bx_balls 1
+expect bx_god 0
+# a bar at a time: four bars and another ball comes in (92 BPM: 2.6 s a bar)
+wait 11500
+expect bx_balls 2
+expect bx_lit >2
+shot bounce.png
+wait 10500
+expect bx_balls 3
+# hit: back to one
+expect bx_hurt 0
+wait 100
+expect bx_balls 1
+expect bx_bars 0
+shot bounce_hit.png
+# NOTE DROP: K1 tilts the first platform (and the fifth), at most ten steps
+tap HOME
+wait 300
+expect menu_to_DROP 1
+tapkey 16
+expect mode_is_DROP 1
+spin K1 3
+wait 100
+expect dp_tilt0 3
+spin K1 20
+expect dp_tilt0 10
+shot drop_tilt.png
+tap HOME

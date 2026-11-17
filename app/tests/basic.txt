@@ -1,0 +1,20 @@
+# Mighty Arcade: a game plays itself; screenshots along the way
+wait 500
+# CHESS from the menu, then CPU VS CPU (the default is you against it)
+expect menu_to_CHESS 1
+tapkey 16
+expect mode_is_CHESS 1
+tap SEL
+spin ALGO 2
+wav game.wav
+shot start.png
+wait 20000
+shot bar8.png
+expect ply >5
+wait 40000
+shot later.png
+spin K4 20
+spin K2 10
+wait 30000
+shot blunders.png
+wavstop

@@ -1,0 +1,272 @@
+# BUMPIN BALL: into it from the menu's second page; the press that starts it doesn't launch; hold A and let go:
+# the ball goes up the lane into the table; flip both flippers a while (it scores); the ball save brings one back
+wait 600
+expect menu_to_PINBALL 1
+tapkey 16
+expect mode_is_PINBALL 1
+wait 500
+expect pb_score 0
+expect pb_balls 3
+shot pinball0.png
+key 16 down
+wait 900
+key 16 up
+wait 700
+shot pinball1.png
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 16 down
+wait 900
+key 16 up
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 16 down
+wait 900
+key 16 up
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 16 down
+wait 900
+key 16 up
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 16 down
+wait 900
+key 16 up
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 7 down
+key 11 down
+wait 120
+key 7 up
+key 11 up
+wait 380
+key 16 down
+wait 900
+key 16 up
+expect pb_score >1000
+shot pinball2.png
