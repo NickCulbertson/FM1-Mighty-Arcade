@@ -4,7 +4,7 @@ Custom firmware for the M-VAVE FM-1. Mighty Arcade, from the creator of Mighty A
 make generative music as you play. Every game is a sequencer: the board, the cards, the balls you sink and the
 creatures you catch are the notes, a playhead plays them in time, and the drums come in as you get further.
 
-![The menu](app/docs/img/menu.png) ![POOL](app/docs/img/pool.png) ![SWARM](app/docs/img/swarm.png)
+![The menu](app/docs/img/menu.png) ![SOLITAIRE](app/docs/img/solitaire.png) ![BOUNCE](app/docs/img/bounce.png)
 
 ## The games
 
