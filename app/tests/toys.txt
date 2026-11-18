@@ -8,6 +8,10 @@ expect mode_is_DROP 1
 wait 300
 expect dp_balls 0
 expect dp_lit 0
+expect dp_np 2
+# The original six-platform board still supports the same musical collision test.
+spin SELECT 7
+expect dp_np 6
 # a row of keys: balls from all along the top, down the board
 key 0 down 100
 wait 40

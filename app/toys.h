@@ -10,12 +10,14 @@
  *              note too. A ball landing on a floor bar lights it: light all eight to clear the board (aim with the
  *              keys). Three hits light a platform full, and lit platforms bring in the drums. A ball hitting four or
  *              more on its way down is a chain. K1..K4 tilt the platforms, each its own (K1 the first, K2 the second ..;
- *              on a board of more than four, the fifth turns with K1, and so on); SELECT picks the board
+ *              on a board of more than four, the fifth turns with K1, and so on); SELECT picks one of twelve boards,
+ *              starting with two platforms and building up to eight
  *  DODGE       (was BOUNCE BOX) a rolling ball, dodge-ball in a box whose walls are 24 note tiles: every bounce off a wall is a note (one an
  *              eighth). The arrows move you; don't get hit. Every four bars you last, another ball comes in, on the
  *              bar line (up to six), so the music builds the longer you survive, and the drums with it. A hit: back
  *              to one ball, the music drops. A near miss is an accent and points; stars are points. Light all 24
- *              tiles: a full circle. K2 sets the speed
+ *              tiles: a full circle. Three balls unlock an exit ring; roll into it for the next level, with solid
+ *              musical bumpers to navigate. An earned exit stays open after a hit. K2 sets the speed
  * Both: the more you've lit, the more of the drums come in (seq.h). Their knobs: K1 TEMPO, K2 BOARD or SPEED,
  * K3 SOUND, K4 EFFECTS, PRESET the scale, ALGORITHM the key. */
 
@@ -65,18 +67,29 @@ static uint8_t toy_board = 0, toy_speed = 5;   /* K2: NOTE DROP's board, DODGE's
 #define DP_NP 8                          /* platforms on a board, at most */
 #define DP_FLOOR 214                     /* the floor's bars, from here down */
 #define DP_R 4.0f
-#define DP_NBOARD 6
+#define DP_NBOARD 12
 #define DP_FULL 3                        /* hits to light a platform full */
-static const char *const DP_NAME[DP_NBOARD] = {"STAIRS", "FUNNEL", "PINS", "ZIGZAG", "CROSSING", "SEESAW"};
-static const int16_t DP_BOARD[DP_NBOARD][DP_NP][4] = {   /* each platform x1, y1, x2, y2 (0, 0, 0, 0: none) */
+static const char *const DP_NAME[DP_NBOARD] = {"FIRST STEPS", "TRIO", "SWITCHBACK", "SPLIT", "ZIGZAG", "FUNNEL",
+                                             "CROSSING", "STAIRS", "CASCADE", "WEAVE", "PINS", "SEESAW"};
+/* Two platforms to start; more routes to steer through as the boards progress. Zero rows are unused. */
+static const int16_t DP_BOARD[DP_NBOARD][DP_NP][4] = {
+    {{48, 88, 96, 98}, {144, 140, 192, 130}},
+    {{38, 70, 90, 80}, {150, 100, 202, 90}, {94, 146, 146, 146}},
+    {{30, 66, 100, 80}, {140, 112, 210, 98}, {62, 160, 132, 174}},
+    {{30, 64, 88, 78}, {152, 78, 210, 64}, {54, 132, 110, 148}, {130, 148, 186, 132}},
+    {{30, 62, 110, 80}, {130, 102, 210, 84}, {40, 134, 120, 152}, {120, 186, 200, 168}},
+    {{18, 60, 100, 92}, {222, 60, 140, 92}, {54, 130, 108, 150}, {186, 130, 132, 150}, {92, 186, 148, 186}},
+    {{28, 70, 110, 100}, {212, 70, 130, 100}, {110, 132, 28, 162}, {130, 132, 212, 162}, {98, 192, 142, 192}},
     {{30, 62, 100, 76}, {140, 76, 210, 62}, {70, 110, 140, 124}, {100, 152, 170, 138}, {20, 176, 80, 190},
      {160, 190, 220, 176}},
-    {{18, 60, 100, 92}, {222, 60, 140, 92}, {54, 130, 108, 150}, {186, 130, 132, 150}, {92, 186, 148, 186}},
+    {{24, 58, 78, 72}, {128, 72, 182, 58}, {68, 104, 122, 118}, {164, 118, 218, 104},
+     {28, 164, 86, 180}, {128, 180, 186, 164}},
+    {{28, 58, 82, 70}, {158, 70, 212, 58}, {92, 96, 148, 96}, {28, 124, 82, 138},
+     {158, 138, 212, 124}, {66, 174, 112, 188}, {128, 188, 174, 174}},
     {{40, 70, 66, 70}, {107, 70, 133, 70}, {174, 70, 200, 70}, {72, 112, 98, 112}, {142, 112, 168, 112},
      {40, 154, 66, 154}, {107, 154, 133, 154}, {174, 154, 200, 154}},
-    {{18, 62, 150, 92}, {222, 104, 90, 134}, {18, 146, 150, 176}, {222, 182, 150, 196}},
-    {{28, 70, 110, 100}, {212, 70, 130, 100}, {110, 132, 28, 162}, {130, 132, 212, 162}, {98, 192, 142, 192}},
-    {{18, 92, 108, 80}, {132, 80, 222, 92}, {64, 138, 176, 138}, {18, 188, 72, 176}, {168, 176, 222, 188}},
+    {{28, 58, 78, 70}, {162, 70, 212, 58}, {86, 96, 154, 96}, {24, 126, 74, 114},
+     {166, 114, 216, 126}, {88, 152, 152, 152}, {30, 190, 84, 176}, {156, 176, 210, 190}},
 };
 typedef struct {
     float x, y, vx, vy;
@@ -153,7 +166,7 @@ static void dp_start(void)               /* the board as new */
     ndrop.tier = 0;
     ndrop.cleared = 0;
     for (i = 0; i < 8; i++)
-        ndrop.floor_lit[i] = 0, ndrop.floor_ms[i] = 0;
+        ndrop.floor_lit[i] = 0, ndrop.floor_ms[i] = 0, ndrop.floor_t[i] = 0;
     ndrop.start_at = plat_ms() | 1u;
     juice_pop(120, 100, DP_NAME[ndrop.board], C_CYAN);
     juice_text(120, 136, "PLAY ANY KEY", C_GHOST);
@@ -381,7 +394,12 @@ static void dp_scene(void)
     int i, j;
     char n[12];
     itos((int32_t)ndrop.score, n);
-    header("DROP", C_CYAN, "", C_PINK, n);
+    {
+        char level[12] = "L";
+        itos(ndrop.board + 1, level + 1);
+        tcat(level, "/12");
+        header("DROP", C_CYAN, level, C_PINK, n);
+    }
     for (k = 0; k < NKEYS; k++) {        /* the keys along the top: where each drops (a ball just dropped: lit) */
         static const uint8_t WK[16] = PLAT_WHITE_KEYS;
         int32_t x = dp_key_x(k), g = dp_glow(ndrop.key_ms[k], ms, 300), white = 0, w;
@@ -449,6 +467,9 @@ static void dp_scene(void)
 #define BX_NB 6                          /* balls at most */
 #define BX_R 4.0f
 #define BX_ME 10.0f                      /* you: a rolling ball, this its radius */
+#define BX_NO 5                          /* solid circular bumpers at most */
+#define BX_EXIT_R 12
+#define BX_EXIT_BALLS 3                  /* the exit opens early; hazards keep building until you leave */
 #define BX_EVERY 4u                      /* bars you last for another ball */
 typedef struct {
     float x, y, vx, vy;
@@ -466,7 +487,10 @@ typedef struct {
     uint32_t spawn_at;                   /* a ball due (ms: as its bar sounds), 0 none */
     uint16_t bars, best;                 /* bars lasted since the last hit; the most balls you've had */
     float sx, sy;                        /* the star (star_on 0: none) */
-    uint8_t star_on;
+    uint8_t star_on, exit_on;
+    uint16_t level;                      /* separate from the wall-colour round */
+    float ex, ey;
+    uint32_t obstacle_ms[BX_NO], obstacle_t;
 } bx_t;
 #define bbox (*(bx_t *)g_arena)
 _Static_assert(sizeof(bx_t) <= sizeof g_arena, "bbox: the arena is too small");
@@ -497,6 +521,71 @@ static void bx_trect(int i, int32_t *x, int32_t *y, int32_t *w, int32_t *h)
         *x = i < 20 ? BX_X0 : BX_X1 - BX_T;
     }
 }
+/* Every layout leaves the centre, corner spawn points, and a route around the bumpers clear. */
+static const uint8_t BX_OBSTACLES[5][BX_NO][3] = {
+    {{0, 0, 0}},
+    {{80, 100, 16}, {160, 156, 16}},
+    {{75, 91, 14}, {165, 91, 14}, {120, 177, 18}},
+    {{75, 85, 15}, {165, 85, 15}, {75, 171, 15}, {165, 171, 15}},
+    {{72, 83, 14}, {168, 83, 14}, {70, 165, 14}, {170, 165, 14}, {120, 198, 12}},
+};
+static int bx_layout(void)
+{
+    return bbox.level < 5u ? bbox.level : 3 + (bbox.level & 1u);
+}
+static int bx_obstacles(void)
+{
+    int i = 0;
+    while (i < BX_NO && BX_OBSTACLES[bx_layout()][i][2])
+        i++;
+    return i;
+}
+static int bx_clear_spot(float x, float y, float r)
+{
+    int i;
+    for (i = 0; i < bx_obstacles(); i++) {
+        const uint8_t *o = BX_OBSTACLES[bx_layout()][i];
+        float dx = x - o[0], dy = y - o[1], rr = r + o[2];
+        if (dx * dx + dy * dy < rr * rr)
+            return 0;
+    }
+    return 1;
+}
+/* Resolve penetration and reflect only incoming velocity. The player's marble bounces softly;
+ * enemy balls keep their speed. Physics takes <=8 ms steps so neither can tunnel through a bumper. */
+static void bx_bump(float *x, float *y, float *vx, float *vy, float r, int player)
+{
+    int i;
+    for (i = 0; i < bx_obstacles(); i++) {
+        const uint8_t *o = BX_OBSTACLES[bx_layout()][i];
+        float dx = *x - o[0], dy = *y - o[1], rr = r + o[2], d2 = dx * dx + dy * dy, d, nx, ny, vn;
+        if (d2 >= rr * rr)
+            continue;
+        d = fm_sqrtf(d2);
+        nx = d > 0.001f ? dx / d : 1.0f;
+        ny = d > 0.001f ? dy / d : 0.0f;
+        *x = o[0] + nx * rr, *y = o[1] + ny * rr;
+        vn = *vx * nx + *vy * ny;
+        if (vn < 0.0f) {
+            float bounce = player ? 1.4f : 2.0f;
+            *vx -= bounce * vn * nx, *vy -= bounce * vn * ny;
+            bbox.obstacle_ms[i] = toy_note_g(&bbox.obstacle_t, h_tone(i + 2), player ? 45 : 70, TY_LOW, 0.2f, 2u);
+        }
+    }
+}
+static void bx_open_exit(void)
+{
+    if (bbox.exit_on)
+        return;
+    /* The opposite corner: appearing under the player must not instantly skip the level. */
+    bbox.ex = bbox.px < 120.0f ? 200.0f : 40.0f;
+    bbox.ey = bbox.py < 128.0f ? 196.0f : 60.0f;
+    bbox.exit_on = 1;
+    juice_pop(120, 100, "EXIT OPEN!", C_CYAN);
+    juice_text(120, 124, "ROLL INTO THE RING", C_GHOST);
+    juice_ring((int32_t)bbox.ex, (int32_t)bbox.ey, 28, C_CYAN, 500);
+    juice_sting(1);
+}
 static float bx_speed(void) { return 0.04f + 0.014f * (float)toy_speed; }   /* px/ms */
 static void bx_add(void)                 /* another ball: from the corner farthest from you, away from you */
 {
@@ -517,6 +606,8 @@ static void bx_add(void)                 /* another ball: from the corner farthe
             for (j = 0; j < 6; j++)
                 b->tx[j] = (int16_t)b->x, b->ty[j] = (int16_t)b->y;
             bbox.nballs++;
+            if (bbox.nballs == BX_EXIT_BALLS)
+                bx_open_exit();
             if (bbox.nballs > bbox.best)
                 bbox.best = bbox.nballs;
             juice_ring((int32_t)b->x, (int32_t)b->y, 30, C_PINK, 320);
@@ -524,7 +615,7 @@ static void bx_add(void)                 /* another ball: from the corner farthe
             return;
         }
 }
-static void bx_new(void)
+static void bx_start_level(void)
 {
     int i;
     for (i = 0; i < 24; i++)
@@ -534,20 +625,44 @@ static void bx_new(void)
     bbox.nballs = 0;
     bbox.tier = 0;
     bbox.round = 0;
-    bbox.score = 0;
     bbox.last = 0;
     bbox.bars = 0;
-    bbox.best = 0;
     bbox.hurt_at = 0;
     bbox.safe_until = plat_ms() + 1500u;
     bbox.spawn_at = 0;
     bbox.px = 120.0f, bbox.py = 128.0f;
+    bbox.pvx = bbox.pvy = bbox.roll = 0.0f;
+    bbox.exit_on = 0;
+    bbox.wall_t = bbox.near_t = bbox.obstacle_t = 0;
+    for (i = 0; i < BX_NO; i++)
+        bbox.obstacle_ms[i] = 0;
     bbox.star_on = 0;
     bbox.star_at = plat_ms() + 5000u;
     bbox.full_at = 0;
     bx_add();
-    juice_pop(120, 96, "DODGE!", C_CYAN);
-    juice_text(120, 132, "ANOTHER BALL EVERY 4 BARS", C_GHOST);
+    {
+        char label[20] = "LEVEL ";
+        itos(bbox.level + 1, label + 6);
+        juice_pop(120, 96, label, C_CYAN);
+        juice_text(120, 132, "3 BALLS OPEN THE EXIT", C_GHOST);
+    }
+}
+static void bx_new(void)
+{
+    bbox.level = 0;
+    bbox.score = 0;
+    bbox.best = 0;
+    bx_start_level();
+}
+static void bx_next_level(void)
+{
+    bbox.score += 500;
+    if (bbox.level < 65534u)
+        bbox.level++;
+    juice_calm();
+    bx_start_level();
+    juice_confetti(120, 110, 36);
+    juice_sting(2);
 }
 static void bx_nav(int dx, int dy, int sel) { (void)dx, (void)dy, (void)sel; }   /* (you move on the held keys) */
 static int bx_lit_n(void)
@@ -624,7 +739,12 @@ static void bx_tick(void)
         v = fm_sqrtf(bbox.pvx * bbox.pvx + bbox.pvy * bbox.pvy);
         if (v > 0.2f)
             bbox.pvx *= 0.2f / v, bbox.pvy *= 0.2f / v, v = 0.2f;
-        bbox.px += bbox.pvx * f, bbox.py += bbox.pvy * f;
+        for (uint32_t left = dt; left; ) {
+            uint32_t step = left > 8u ? 8u : left;
+            bbox.px += bbox.pvx * (float)step, bbox.py += bbox.pvy * (float)step;
+            bx_bump(&bbox.px, &bbox.py, &bbox.pvx, &bbox.pvy, BX_ME, 1);
+            left -= step;
+        }
         bbox.roll += v * f / BX_ME;
         lo = (float)BX_X0 + BX_T + BX_ME, hi = (float)BX_X1 - BX_T - BX_ME;
         if (bbox.px < lo || bbox.px > hi) {
@@ -651,8 +771,15 @@ static void bx_tick(void)
     }
     if (!bbox.star_on && (int32_t)(ms - bbox.star_at) >= 0) {   /* a star appears */
         bbox.star_on = 1;
-        bbox.sx = 40.0f + (float)(kr() % 160u);
-        bbox.sy = 50.0f + (float)(kr() % 140u);
+        int tries;
+        for (tries = 0; tries < 32; tries++) {
+            bbox.sx = 40.0f + (float)(kr() % 160u);
+            bbox.sy = 50.0f + (float)(kr() % 140u);
+            if (bx_clear_spot(bbox.sx, bbox.sy, BX_ME + 4.0f))
+                break;
+        }
+        if (tries == 32)                 /* bounded search; the centre is clear in every layout */
+            bbox.sx = 120.0f, bbox.sy = 128.0f;
         juice_ring((int32_t)bbox.sx, (int32_t)bbox.sy, 20, C_YEL, 300);
     }
     for (i = 0; i < BX_NB; i++) {
@@ -670,23 +797,28 @@ static void bx_tick(void)
             b->vy = b->vy < 0.0f ? -0.25f * sp : 0.25f * sp;
         if (fm_fabsf(b->vx) < 0.25f * sp)
             b->vx = b->vx < 0.0f ? -0.25f * sp : 0.25f * sp;
-        b->x += b->vx * f;
-        b->y += b->vy * f;
-        if (b->y < (float)BX_Y0 + BX_T + BX_R) {   /* the walls: each a tile, each a note */
-            b->y = (float)BX_Y0 + BX_T + BX_R, b->vy = fm_fabsf(b->vy);
-            bx_tile((int)clamp((int32_t)((b->x - BX_X0) * 8.0f / (float)(BX_X1 - BX_X0)), 0, 7), b->x, b->y, ms);
-        } else if (b->y > (float)BX_Y1 - BX_T - BX_R) {
-            b->y = (float)BX_Y1 - BX_T - BX_R, b->vy = -fm_fabsf(b->vy);
-            bx_tile(8 + (int)clamp((int32_t)((b->x - BX_X0) * 8.0f / (float)(BX_X1 - BX_X0)), 0, 7), b->x, b->y, ms);
-        }
-        if (b->x < (float)BX_X0 + BX_T + BX_R) {
-            b->x = (float)BX_X0 + BX_T + BX_R, b->vx = fm_fabsf(b->vx);
-            bx_tile(16 + (int)clamp((int32_t)((b->y - BX_Y0 - BX_T) * 4.0f / (float)(BX_Y1 - BX_Y0 - 2 * BX_T)), 0, 3),
-                    b->x, b->y, ms);
-        } else if (b->x > (float)BX_X1 - BX_T - BX_R) {
-            b->x = (float)BX_X1 - BX_T - BX_R, b->vx = -fm_fabsf(b->vx);
-            bx_tile(20 + (int)clamp((int32_t)((b->y - BX_Y0 - BX_T) * 4.0f / (float)(BX_Y1 - BX_Y0 - 2 * BX_T)), 0, 3),
-                    b->x, b->y, ms);
+        for (uint32_t left = dt; left; ) {
+            uint32_t step = left > 8u ? 8u : left;
+            b->x += b->vx * (float)step;
+            b->y += b->vy * (float)step;
+            bx_bump(&b->x, &b->y, &b->vx, &b->vy, BX_R, 0);
+            left -= step;
+            if (b->y < (float)BX_Y0 + BX_T + BX_R) {   /* the walls: each a tile, each a note */
+                b->y = (float)BX_Y0 + BX_T + BX_R, b->vy = fm_fabsf(b->vy);
+                bx_tile((int)clamp((int32_t)((b->x - BX_X0) * 8.0f / (float)(BX_X1 - BX_X0)), 0, 7), b->x, b->y, ms);
+            } else if (b->y > (float)BX_Y1 - BX_T - BX_R) {
+                b->y = (float)BX_Y1 - BX_T - BX_R, b->vy = -fm_fabsf(b->vy);
+                bx_tile(8 + (int)clamp((int32_t)((b->x - BX_X0) * 8.0f / (float)(BX_X1 - BX_X0)), 0, 7), b->x, b->y, ms);
+            }
+            if (b->x < (float)BX_X0 + BX_T + BX_R) {
+                b->x = (float)BX_X0 + BX_T + BX_R, b->vx = fm_fabsf(b->vx);
+                bx_tile(16 + (int)clamp((int32_t)((b->y - BX_Y0 - BX_T) * 4.0f / (float)(BX_Y1 - BX_Y0 - 2 * BX_T)), 0, 3),
+                        b->x, b->y, ms);
+            } else if (b->x > (float)BX_X1 - BX_T - BX_R) {
+                b->x = (float)BX_X1 - BX_T - BX_R, b->vx = -fm_fabsf(b->vx);
+                bx_tile(20 + (int)clamp((int32_t)((b->y - BX_Y0 - BX_T) * 4.0f / (float)(BX_Y1 - BX_Y0 - 2 * BX_T)), 0, 3),
+                        b->x, b->y, ms);
+            }
         }
         dx = fm_fabsf(b->x - bbox.px), dy = fm_fabsf(b->y - bbox.py);
         if (dx * dx + dy * dy < (BX_ME + BX_R) * (BX_ME + BX_R)) {   /* it got you */
@@ -707,6 +839,13 @@ static void bx_tick(void)
             bbox.star_on = 0;                /* (a ball through the star: it's gone, nothing won) */
             bbox.star_at = ms + 6000u + kr() % 5000u;
             juice_burst((int32_t)bbox.sx, (int32_t)bbox.sy, 6, 1, C_GHOST, C_BG, 0);
+        }
+    }
+    if (bbox.exit_on) {
+        float dx = bbox.px - bbox.ex, dy = bbox.py - bbox.ey;
+        if (dx * dx + dy * dy <= (float)(BX_EXIT_R * BX_EXIT_R)) {
+            bx_next_level();
+            return;
         }
     }
     if (bbox.star_on && fm_fabsf(bbox.px - bbox.sx) < 11.0f && fm_fabsf(bbox.py - bbox.sy) < 11.0f) {
@@ -824,7 +963,11 @@ static void bx_scene(void)
     int i, j;
     char n[12];
     itos((int32_t)bbox.score, n);
-    header("DODGE", C_CYAN, "", C_PINK, n);
+    {
+        char level[12] = "L";
+        itos(bbox.level + 1, level + 1);
+        header("DODGE", C_CYAN, level, C_PINK, n);
+    }
     for (i = 0; i < bbox.nballs && i < BX_NB; i++)   /* the balls in play, in the header */
         disc(124 + i * 8, 10, 2, C_PINK);
     for (i = 0; i < 24; i++) {           /* the tiles: dim until lit; a note flashes them, bulging in */
@@ -841,6 +984,22 @@ static void bx_scene(void)
         else
             x -= bulge, w += bulge;
         cv_rect(x, y, w, h, c);
+    }
+    for (i = 0; i < bx_obstacles(); i++) {
+        const uint8_t *o = BX_OBSTACLES[bx_layout()][i];
+        int32_t g = dp_glow(bbox.obstacle_ms[i], ms, 240);
+        uint16_t col = mix565(C_LINE2, C_CYAN, 100 + g / 2);
+        disc(o[0] + 2, o[1] + 3, o[2], RGB(4, 2, 10));
+        disc(o[0], o[1], o[2], col);
+        disc(o[0], o[1], o[2] - 3, mix565(C_BG, col, 80));
+        disc(o[0] - 3, o[1] - 4, 3, mix565(col, C_INK, 120));
+    }
+    if (bbox.exit_on) {
+        int32_t x = (int32_t)bbox.ex, y = (int32_t)bbox.ey, r = BX_EXIT_R + (int32_t)(ms / 180u % 3u);
+        disc(x, y, r, C_CYAN);
+        disc(x, y, r - 2, C_BG);
+        disc(x, y, 2, C_INK);
+        text_c(x, y - 24, &FONT_XS, "EXIT", C_CYAN);
     }
     if (bbox.star_on) {                  /* the star: spinning, pulsing */
         int32_t sx = (int32_t)bbox.sx, sy = (int32_t)bbox.sy, r = 5 + (int32_t)((ms / 120u) % 3u);

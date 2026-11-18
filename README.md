@@ -137,7 +137,8 @@ platforms, SELECT the board; DODGE: K1 TEMPO, K2 SPEED, K3 SOUND, K4 EFFECTS. Bo
 - **NOTE DROP**: every key drops a ball from above where it sits on the keyboard (all the keys light). It tumbles
   down the board's platforms, each a note (the higher, the higher), onto the floor's eight bars, each a note too. A
   ball landing on a bar lights it: light all eight to clear the board, so aim with the keys. Three hits light a
-  platform full, and lit platforms bring in the drums. Four hits on the way down is a chain. Six boards. Each
+  platform full, and lit platforms bring in the drums. Four hits on the way down is a chain. Twelve boards progress from two platforms to eight, with
+  increasingly dense and varied arrangements; the header shows your level. After board twelve the cycle repeats. Each
   platform has a knob (K1 .. K4, marked under it; on a board of more than four, the fifth shares K1, and so on):
   turn it and the platform tilts, up to 60 degrees either way, to send the balls where you want them.
 - **DODGE** (was BOUNCE BOX): you're a rolling ball (it keeps rolling, slows by itself, and takes a moment to
@@ -145,7 +146,10 @@ platforms, SELECT the board; DODGE: K1 TEMPO, K2 SPEED, K3 SOUND, K4 EFFECTS. Bo
   a wall is a note (one an eighth). The arrows move you. Every four bars you last, another ball comes in on the bar
   line (up to six), so the music builds the longer you survive, a drum part more for each ball. A hit: back to one
   ball, and the music drops. A near miss is an accent and points; stars are points and light some tiles. Light all
-  24: a full circle.
+  24: a full circle. When the third ball arrives, a cyan exit ring opens in the opposite corner. Roll into it to
+  earn 500 points and advance with your score intact. Each level starts with one ball; levels two onward add
+  solid musical bumpers that deflect both you and the enemy balls. The first five levels build from an empty
+  arena to five bumpers, then alternate the two densest layouts. A hit keeps your level and any earned exit open.
 
 Two players: the board games take turns on one board; the score games are a round each (player 1, then player 2,
 then the scores side by side).
