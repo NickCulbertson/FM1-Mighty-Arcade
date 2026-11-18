@@ -552,9 +552,11 @@ static void juice_post(uint16_t bg)      /* the drawn band: shaken sideways, tor
 }
 
 /* the whole screen, in two bands of 120 rows: scene() draws in screen coordinates, twice (shaken by the juice) */
+static uint32_t k_frame;                 /* frames drawn (scope_draw: one snapshot a frame, both bands) */
 static void screen_draw(void (*scene)(void), uint16_t bg)
 {
     int32_t b;
+    k_frame++;
     juice_step();
     for (b = 0; b < 2; b++) {
         cv_begin(240, 120, bg);
@@ -871,15 +873,29 @@ static void k_panic(void)
 /* the scope: the last samples as a line across w at x, y, h tall */
 static void scope_draw(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
-    uint32_t at = scope_w - SCOPE_N, i, z = 0;
+    /* one snapshot a frame: the screen is drawn in two bands, and the scope straddles them; each band reading the
+     * buffer afresh drew two moments of the sound, torn across the middle (Nick: "super choppy", 18 Nov 2026) */
+    static int16_t snap[SCOPE_N];
+    static uint32_t snap_frame = 0xFFFFFFFFu;
+    static uint32_t z;
+    uint32_t i;
     int32_t last = 0, k;
-    for (i = 1; i < SCOPE_N / 2u; i++)   /* start at an upward zero crossing: the wave stands still */
-        if (scope[(at + i - 1u) & (SCOPE_N - 1u)] < 0 && scope[(at + i) & (SCOPE_N - 1u)] >= 0) {
-            z = i;
-            break;
-        }
+    if (snap_frame != k_frame) {
+        uint32_t at, f;
+        snap_frame = k_frame;
+        f = plat_lock();
+        at = scope_w - SCOPE_N;
+        for (i = 0; i < SCOPE_N; i++)
+            snap[i] = scope[(at + i) & (SCOPE_N - 1u)];
+        plat_unlock(f);
+        for (z = 0, i = 1; i < SCOPE_N / 2u; i++)   /* start at an upward zero crossing: the wave stands still */
+            if (snap[i - 1u] < 0 && snap[i] >= 0) {
+                z = i;
+                break;
+            }
+    }
     for (k = 0; k < w; k++) {
-        int32_t v = scope[(at + z + (uint32_t)k * (SCOPE_N / 2u) / (uint32_t)w) & (SCOPE_N - 1u)];
+        int32_t v = snap[(z + (uint32_t)k * (SCOPE_N / 2u) / (uint32_t)w) & (SCOPE_N - 1u)];
         int32_t yy = y + h / 2 - v * (h / 2) / 2500;
         yy = clamp(yy, y, y + h - 1);
         if (k)

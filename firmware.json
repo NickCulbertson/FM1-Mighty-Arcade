@@ -7,6 +7,7 @@
   "tagline": "A box of casual games that make music",
   "description": "Mighty Arcade, from the creator of Mighty Arp: eighteen casual games, from chess and solitaire to pinball and arcade classics, every one a sequencer. Each move, each card, each cleared row plays the music. One player or two.",
   "tags": ["synth"],
+  "screenshot": "app/docs/img/menu.png",
   "hardware": {
     "models": ["FM-1"],
     "flash": ["856014", "B36014"],
