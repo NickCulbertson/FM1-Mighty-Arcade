@@ -5,27 +5,29 @@
  * are old and free; the famous looks and names are not ours to use):
  *
  *  BRICK BREAK  a paddle, a ball, a wall of bricks: each row a pitch, each column a step of the scale
- *  SWARM        a rocket against a swarm of droid ships, each kind flying and firing its own way; each one hit
+ *  SWARM        a rocket against a swarm of creatures, each kind flying and firing its own way; each one hit
  *               goes in the jar, an eight-step loop that plays them, each sway a note of the bass (quicker as it thins); shoot them,
- *               each one its note. (Redrawn 17 Nov 2026: its first look, rows of pixel aliens marching to the edge
- *               and stepping down over a cannon, was too near the famous invaders game's, whose aliens are its
- *               maker's trademarks)
+ *               each one its note. (17 Nov 2026: no longer rows marching to the edge and stepping down over a cannon,
+ *               the famous invaders game's design; the swarm weaves, circles and swoops in the upper sky, so the first
+ *               creatures, its own designs, came back at Nick's call)
  *  ROCK DRIFT   a ship among drifting rocks: left and right turn, up thrusts, A fires; a rock breaks into smaller,
  *               higher notes. A sequencer: a radar sweep plays the rocks it crosses, once a bar
  * (DOT MUNCHER was cut, 16 Nov 2026: a maze of dots with chasers is Pac-Man's design, cf. Atari v. Philips 1982) */
 
-static int held(uint32_t pc)             /* a key of this pitch class (in any octave) held */
-{
-    uint32_t k;
-    for (k = 0; k < NKEYS; k++)
-        if ((ui.keys >> k & 1u) && (53u + k) % 12u == pc)
-            return 1;
-    return 0;
-}
-#define HELD_L held(0)
-#define HELD_R held(4)
-#define HELD_U held(1)
-#define HELD_D held(2)
+/* held like a game controller (Nick, 18 Nov 2026): the pad under the left hand at the keyboard's bottom end, F3 left,
+ * F#3 up, G3 down, A3 right; the select key under the right hand at its top end, F5 (one key, Nick said: F,
+ * as the pad's left) */
+#define PAD_L 0u
+#define PAD_U 1u
+#define PAD_D 2u
+#define PAD_R 4u
+#define PAD_S0 24u                       /* F5 */
+#define PAD_SEL_KEYS (1u << PAD_S0)
+#define HELD_L ((ui.keys >> PAD_L) & 1u)
+#define HELD_R ((ui.keys >> PAD_R) & 1u)
+#define HELD_U ((ui.keys >> PAD_U) & 1u)
+#define HELD_D ((ui.keys >> PAD_D) & 1u)
+#define HELD_S ((ui.keys & PAD_SEL_KEYS) != 0u)
 static uint32_t arc_dt(uint32_t *last)   /* ms since the last frame, at most 40 (a stall never jumps far) */
 {
     uint32_t ms = plat_ms(), d = *last ? ms - *last : 16u;
@@ -47,6 +49,12 @@ static void lives_draw(int n)
 }
 enum { NA_HIT, NA_BASS, NA_HAT, NA_KICK, NA_BOOM, NA_WIN, NA_SNARE, NA_PAD, NA_SEQ };   /* NA_SEQ: the playhead's
                                                                                      * (BRICK BREAK, STAR SWARM) */
+static void br_room(void)                /* BOUNCE: more room, and a dotted-eighth echo at the tempo (Nick, 17 Nov 2026) */
+{
+    k_main.rev_mix = 0.28f, k_main.rev_secs = 2.6f;
+    k_main.dly_samples = SR_F * 45.0f / (float)sq_cfg[SQ_BRICK].bpm;
+    k_main.dly_mix = 0.24f, k_main.dly_fb = 0.42f;
+}
 static void arc_sounds(int hit)
 {
     static const uint8_t HIT[4] = {S_MARIMBA, S_CELESTA, S_VIBES, S_CHIP};
@@ -69,8 +77,10 @@ static void arc_sounds(int hit)
         sq_slot = NA_SEQ;
         sq_sound(hit == 0 ? SQ_BRICK : hit == 1 ? SQ_SWARM : SQ_DRIFT);
     }
+    if (hit == 0)
+        br_room();
     if (hit == 2)                        /* ROCK DRIFT: space, and room for the sweep's notes to ring */
-        k_main.rev_mix = 0.26f, k_main.rev_secs = 3.2f, k_main.shimmer = 0.1f, k_main.dly_mix = 0.16f;
+        k_main.rev_mix = 0.26f, k_main.rev_secs = 3.2f, k_main.shimmer = 0.04f, k_main.dly_mix = 0.16f;
 }
 static void arc_groove(uint32_t t, uint32_t step, uint32_t lv, int on)
 {
@@ -483,10 +493,10 @@ static void br_scene(void)
     disc((int32_t)br.bx, (int32_t)br.by, 3, C_YEL);
     disc((int32_t)br.bx - 1, (int32_t)br.by - 1, 1, C_INK);
     if (br.stuck && !br.over)
-        text_c(120, 160, &FONT_T, "A: LAUNCH", C_GHOST);
+        text_c(120, 160, &FONT_T, "TOP KEY: LAUNCH", C_GHOST);
     if (br.over) {
         char bs[24], bn[12];
-        over_box("THE END", "A: AGAIN   HOME: MENU");
+        over_box("THE END", "TOP KEY: AGAIN   HOME: MENU");
         itos((int32_t)br_best, bn);
         tcpy(bs, "BEST ");
         tcat(bs, bn);
@@ -500,7 +510,7 @@ static void br_scene(void)
  * flying and firing its own way, its shots on the beat. You fly a rocket in the lower sky (left and right, a little
  * forward and back; A fires). The twist is the music: every droid you hit is caught in the JAR, eight slots across
  * the top that loop as a bar of eighths, each playing its droid's note, so the tune is what you shot, in the order you
- * shot it (a full jar: the oldest slot goes). Three hits on you and it's the end. The whole swarm: the next, bigger
+ * shot them, each into a random slot (a full jar: a random one goes). Three hits on you and it's the end. The whole swarm: the next, bigger
  * and quicker. The first five waves are one kind of droid each, then two, then all.
  *   SCOUT       weaves fast;            fires one shot straight down
  *   GUNSHIP     heavy, slow;            fires a spread of two
@@ -514,18 +524,6 @@ static void br_scene(void)
 #define SW_JAR_Y 24                      /* the jar: a strip of eight slots under the header */
 #define SW_LOW 116                       /* the droids keep above this: the upper sky is theirs */
 #define SW_SHIP_Y 214                    /* your rocket's nose, at the back; it may come forward to SW_SHIP_Y - 36 */
-static const char *const SW_BUG[SW_NKIND][2][7] = {   /* 8 x 7, nose down: a hull, b dark, c its lights; 2 frames */
-    {{"a......a", "aa.bb.aa", "aaabbaaa", ".aaccaa.", "..aaaa..", "...aa...", "...cc..."},     /* a scout */
-     {"a......a", "aa.bb.aa", "aaabbaaa", ".aaccaa.", "..aaaa..", "...aa...", "........"}},
-    {{"bbaaaabb", "baaaaaab", "aacaacaa", "aaaaaaaa", "abaaaaba", "a.b..b.a", "..c..c.."},     /* a gunship */
-     {"bbaaaabb", "baaaaaab", "aacaacaa", "aaaaaaaa", "abaaaaba", "a.b..b.a", "........"}},
-    {{"...aa...", "..aaaa..", "a.acca.a", "aaaaaaaa", "aa.bb.aa", "a......a", "...cc..."},     /* an interceptor */
-     {"...aa...", "..aaaa..", "a.acca.a", "aaaaaaaa", "aa.bb.aa", "a......a", "........"}},
-    {{".bbbbbb.", "baaaaaab", "aacaacaa", "baaaaaab", ".bbbbbb.", "..a..a..", ".c....c."},     /* an orbiter */
-     {".bbbbbb.", "baaaaaab", "acaacaac", "baaaaaab", ".bbbbbb.", "..a..a..", "c......c"}},
-    {{"..aaaa..", ".abbbba.", "aabccbaa", "aaaaaaaa", ".a.aa.a.", ".a.cc.a.", "...cc..."},     /* a sentinel */
-     {"..aaaa..", ".abbbba.", "aabccbaa", "aaaaaaaa", ".a.aa.a.", ".a.aa.a.", "...aa..."}},
-};
 static const uint16_t SW_KCOL[SW_NKIND] = {RGB(130, 170, 200), RGB(150, 150, 160), RGB(200, 140, 90), RGB(150, 130, 200),
                                           RGB(150, 170, 110)};   /* steel, gunmetal, copper, violet steel, olive */
 static const uint16_t SW_KLIGHT[SW_NKIND] = {RGB(95, 227, 238), RGB(255, 210, 63), RGB(255, 90, 70), RGB(200, 140, 255),
@@ -662,7 +660,7 @@ static void sw_groove(uint32_t t, uint32_t step)
 static void sw_catch(int k)              /* droid k hit: up into the jar */
 {
     sw_bug_t *b = &sw.b[k];
-    int f, slot = sw.jnext;
+    int f, slot = seq_free_slot(sw.jar, SW_SLOTS);   /* (a random slot: a random rhythm) */
     char ps[12] = {'+', 0};
     uint32_t pts;
     b->on = 0;
@@ -671,7 +669,6 @@ static void sw_catch(int k)              /* droid k hit: up into the jar */
     sw.streak = (uint8_t)(sw.streak < 99 ? sw.streak + 1 : 99);
     pts = 10u * (1u + sw.streak / 4u) * (1u + sw.wave) * (b->kind == 1 ? 2u : 1u);   /* (a gunship: double) */
     sw.score += pts;
-    sw.jnext = (uint8_t)((sw.jnext + 1) % SW_SLOTS);
     for (f = 0; f < 4 && sw.fly_at[f]; f++)
         ;
     if (f < 4) {
@@ -878,6 +875,29 @@ static void sw_tick(void)
         if (sw.fly_at[k] && ms - sw.fly_at[k] > 450u)
             sw.fly_at[k] = 0;
 }
+/* ---- SWARM's droids (17 Nov 2026, Nick: back to the first swarm's look, "a little different from Space Invaders":
+ * the original creatures, 8 x 6, two frames, drawn at twice the size; the way they fly and fire is their own now).
+ * a: its body, b: its dark (eyes, mouth) */
+static const char *const SW_BUG[SW_NKIND][2][6] = {
+    {{".aaaaaa.", "aabaabaa", "aaaaaaaa", "a.a..a.a", "a..aa..a", ".a....a."},     /* a jellyfish (the scout) */
+     {".aaaaaa.", "aabaabaa", "aaaaaaaa", ".a.aa.a.", "a.a..a.a", "..a..a.."}},
+    {{"a......a", ".a.aa.a.", ".aaaaaa.", "aababbaa", ".aaaaaa.", "a.a..a.a"},     /* a beetle (the gunship) */
+     {".a....a.", "..aaaa..", ".aaaaaa.", "aababbaa", ".aaaaaa.", ".a.a.a.a"}},
+    {{"...aa...", "...aa...", "aaaaaaaa", ".abaaba.", "..a..a..", ".a....a."},     /* a star (the interceptor) */
+     {"...aa...", "a..aa..a", ".aaaaaa.", "..baab..", ".a.aa.a.", "a......a"}},
+    {{"..aaaa..", ".aaaaaa.", "aaabbaaa", "aaabbaaa", ".aaaaaa.", "a.a..a.a"},     /* an eye (the orbiter) */
+     {"..aaaa..", ".aaaaaa.", "aabbaaaa", "aabbaaaa", ".aaaaaa.", ".a.aa.a."}},
+    {{"a..aa..a", ".aaaaaa.", "aab..baa", "aaaaaaaa", ".a.aa.a.", "a......a"},     /* a horned one (the sentinel) */
+     {"..a..a..", "aaaaaaaa", "aab..baa", ".aaaaaa.", ".a.aa.a.", "..a..a.."}},
+};
+static void sw_droid(int k, int32_t x, int32_t y, uint32_t ms, int seed, int lit)   /* droid k in its 16 x 14 box */
+{
+    uint16_t map[2];
+    (void)ms;
+    map[0] = lit ? C_INK : SW_KLIGHT[k], map[1] = RGB(20, 16, 40);
+    sprite(x, y + 1, SW_BUG[k][(sw.frame + (uint32_t)seed) & 1u], 6, 2, map);
+}
+
 static void sw_scene(void)
 {
     int k;
@@ -904,26 +924,23 @@ static void sw_scene(void)
             int lit = sw.seq_ms[c] && (int32_t)q >= 0 && q < 160u;
             frame_rect(x, y, 27, 18, lit ? C_INK : RGB(60, 50, 90));
             if (sw.jar[c]) {
-                uint16_t map[3] = {lit ? C_INK : SW_KCOL[sw.jkind[c]], RGB(40, 36, 56), SW_KLIGHT[sw.jkind[c]]};
                 cv_rect(x + 1, y + 1, 25, 16, mix565(RGB(16, 12, 28), SW_KLIGHT[sw.jkind[c]], lit ? 120 : 40));
-                sprite(x + 6, y + 2, SW_BUG[sw.jkind[c]][(ms / 300u + (uint32_t)c) & 1u], 7, 2, map);
+                sw_droid(sw.jkind[c], x + 6, y + 2, ms, c, lit);
             }
         }
     }
     for (k = 0; k < 4; k++)              /* the hit ones, flying up into their slots */
         if (sw.fly_at[k]) {
             float t = (float)(ms - sw.fly_at[k]) / 450.0f, x, y;
-            uint16_t map[3] = {SW_KCOL[sw.fly_k[k]], RGB(40, 36, 56), SW_KLIGHT[sw.fly_k[k]]};
             t = t > 1.0f ? 1.0f : t;
             x = sw.fly_x[k] + ((float)(4 + sw.fly_slot[k] * 29 + 6) - sw.fly_x[k]) * t;
             y = sw.fly_y[k] + ((float)(SW_JAR_Y + 3) - sw.fly_y[k]) * t * t;
-            sprite((int32_t)x, (int32_t)y, SW_BUG[sw.fly_k[k]][(ms / 80u) & 1u], 7, 2, map);
+            sw_droid(sw.fly_k[k], (int32_t)x, (int32_t)y, ms, k, 1);
         }
     {
         uint32_t wq = ms - sw.wave_at;
         for (k = 0; k < SW_NB; k++) {    /* the swarm (warping in, at first: a ring closing on each) */
             sw_bug_t *b = &sw.b[k];
-            uint16_t map[3];
             if (!b->on)
                 continue;
             if (wq < 700u) {
@@ -937,8 +954,7 @@ static void sw_scene(void)
                 if ((wq / 60u) & 1u)
                     continue;
             }
-            map[0] = SW_KCOL[b->kind], map[1] = RGB(40, 36, 56), map[2] = SW_KLIGHT[b->kind];
-            sprite((int32_t)b->x, (int32_t)b->y, SW_BUG[b->kind][(sw.frame + (uint32_t)k) & 1u], 7, 2, map);
+            sw_droid(b->kind, (int32_t)b->x, (int32_t)b->y, ms, k, 0);
         }
     }
     for (k = 0; k < 2; k++)              /* your shots: a hot core, a glow, a trail */
@@ -982,7 +998,7 @@ static void sw_scene(void)
     }
     if (sw.over && ms - sw.over_at > 700u) {
         char bs[24], bn[12];
-        over_box("THE END", "A: AGAIN   HOME: MENU");
+        over_box("THE END", "TOP KEY: AGAIN   HOME: MENU");
         itos((int32_t)sw_best, bn);
         tcpy(bs, "BEST ");
         tcat(bs, bn);
@@ -1444,7 +1460,7 @@ static void dr_scene(void)
     if (dr.over) {
         char b[24] = "BEST ";
         itos((int32_t)dr_best, b + 5);
-        over_box("THE END", "A: AGAIN   HOME: MENU");
+        over_box("THE END", "TOP KEY: AGAIN   HOME: MENU");
         text_c(120, 172, &FONT_XS, b, C_GHOST);
     }
 }

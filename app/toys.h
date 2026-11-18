@@ -35,7 +35,7 @@ static void toy_sounds(int g)
     k_slot_rel(TY_STAR, 1.0f);
     k_slot_rel(TY_WIN, 1.2f);
     k_main_slot = TY_SEQ;
-    k_main.rev_mix = 0.3f, k_main.rev_secs = 3.2f, k_main.shimmer = 0.12f;
+    k_main.rev_mix = 0.3f, k_main.rev_secs = 3.2f, k_main.shimmer = 0.04f;
     k_main.dly_mix = 0.16f, k_main.dly_fb = 0.35f;
     sq_slot = TY_SEQ;
     sq_sound(g);
@@ -761,6 +761,63 @@ static void bx_groove(uint32_t t, uint32_t step)
         bbox.tier = (uint8_t)tier;
     sq_drums(t, p, tier, TY_HAT, TY_KICK, TY_SNARE, 70);
 }
+/* a glass marble, drawn a pixel at a time (17 Nov 2026, Nick: "more like a high def marble"): clear blue glass, dark
+ * at its rim and bright through its middle, a cat's-eye ribbon of pink and gold inside that turns as it rolls (the
+ * sphere rotated by roll about the axis across ux, uy), the window's highlight and a smaller one opposite (still: the
+ * light doesn't roll), a thin bright rim where the light comes through, and on the floor its shadow with the light it
+ * gathers (a caustic) on the far side. hurt: pink glass. shadow 0: none (the menu's icon) */
+static void bx_marble(int32_t x, int32_t y, int32_t r, float roll, float ux, float uy, int hurt, int shadow)
+{
+    float cr = fm_cosf(roll), sr = -fm_sinf(roll), kx = -uy, ky = ux, R = (float)r;   /* (sr negated: it turns the way it rolls) */
+    uint16_t core = hurt ? RGB(255, 140, 190) : RGB(80, 190, 255), rim = hurt ? RGB(70, 6, 30) : RGB(4, 14, 60);
+    uint16_t rib1 = hurt ? RGB(255, 240, 200) : RGB(255, 60, 150), rib2 = hurt ? RGB(255, 255, 255) : RGB(255, 200, 60);
+    int32_t dx, dy;
+    if (shadow) {
+        disc(x + 3, y + 4, r, RGB(4, 2, 10));                              /* its shadow */
+        disc(x + 5, y + 6 + r / 2, r / 3, mix565(RGB(4, 2, 10), core, 50));    /* the light it gathers */
+    }
+    for (dy = -r; dy <= r; dy++)
+        for (dx = -r; dx <= r; dx++) {
+            float nx = ((float)dx + 0.5f) / R, ny = ((float)dy + 0.5f) / R, n2 = nx * nx + ny * ny, nz, t, px, py, pz, kv;
+            float band, hl;
+            uint16_t c;
+            if (n2 > 1.0f)
+                continue;
+            nz = fm_sqrtf(1.0f - n2);
+            t = nz;                      /* 1 the middle, 0 the rim */
+            c = mix565(rim, core, (int32_t)(256.0f * (0.08f + 0.92f * t * t * (1.4f - 0.4f * t)) * (0.7f + 0.3f * (-nx - ny + 1.0f) * 0.5f)));
+            /* the ribbon inside: the point rotated with the roll (Rodrigues, about k), a thin twisted sheet through
+             * the middle, seen a little shrunk (it's inside the glass) and faded toward the rim */
+            kv = kx * nx + ky * ny;
+            px = nx * cr + (ky * nz) * sr + kx * kv * (1.0f - cr);
+            py = ny * cr + (-kx * nz) * sr + ky * kv * (1.0f - cr);
+            pz = nz * cr + (kx * ny - ky * nx) * sr;
+            band = px * 0.9f + 0.35f * fm_sinf(3.0f * py + 1.5f * pz);
+            if (t > 0.25f) {
+                float a = band < 0.0f ? -band : band;
+                if (a < 0.2f)
+                    c = mix565(c, rib1, (int32_t)((1.0f - a / 0.2f * 0.6f) * 245.0f * t));
+                else {
+                    float b2 = pz * 0.9f - 0.3f * fm_sinf(3.0f * px), a2 = b2 < 0.0f ? -b2 : b2;
+                    if (a2 < 0.12f)
+                        c = mix565(c, rib2, (int32_t)((1.0f - a2 / 0.12f * 0.6f) * 220.0f * t));
+                }
+            }
+            if (t < 0.32f && nx + ny > 0.45f)   /* the rim lit where the light comes through */
+                c = mix565(c, core, (int32_t)((0.32f - t) / 0.32f * 220.0f));
+            else if (t < 0.18f)
+                c = mix565(c, RGB(2, 6, 20), 90);
+            hl = (nx + 0.38f) * (nx + 0.38f) + (ny + 0.42f) * (ny + 0.42f);   /* the window's highlight */
+            if (hl < 0.035f)
+                c = RGB(255, 255, 255);
+            else if (hl < 0.12f)
+                c = mix565(c, RGB(255, 255, 255), (int32_t)((0.12f - hl) / 0.085f * 150.0f));
+            hl = (nx - 0.42f) * (nx - 0.42f) + (ny - 0.5f) * (ny - 0.5f);    /* a smaller one, opposite */
+            if (hl < 0.018f)
+                c = mix565(c, RGB(255, 255, 255), 140);
+            cv_pset(x + dx, y + dy, c);
+        }
+}
 static void bx_scene(void)
 {
     uint32_t ms = plat_ms();
@@ -804,23 +861,13 @@ static void bx_scene(void)
         disc((int32_t)b->x, (int32_t)b->y, (int32_t)BX_R, col);
         disc((int32_t)b->x - 1, (int32_t)b->y - 1, 1, C_INK);
     }
-    {                                    /* you: a rolling ball, its stripe turning as it rolls the way it goes (it
-                                          * blinks while safe after a hit) */
-        int32_t x = (int32_t)bbox.px, y = (int32_t)bbox.py, rr = (int32_t)BX_ME, k;
+    {                                    /* you: a glass marble rolling the way it goes (it blinks while safe after
+                                          * a hit, flushed pink a moment when hit) */
+        int32_t x = (int32_t)bbox.px, y = (int32_t)bbox.py;
         int safe = (int32_t)(ms - bbox.safe_until) < 0, hurt = bbox.hurt_at && ms - bbox.hurt_at < 400u;
         float v = fm_sqrtf(bbox.pvx * bbox.pvx + bbox.pvy * bbox.pvy), ux = v > 0.001f ? bbox.pvx / v : 1.0f,
-              uy = v > 0.001f ? bbox.pvy / v : 0.0f, ph = fm_sinf(bbox.roll);
-        if (!safe || (ms / 90u) & 1u) {
-            disc(x + 2, y + 4, rr, RGB(4, 2, 10));           /* its shadow */
-            disc(x, y, rr, hurt ? C_PINK : C_CYAN);
-            for (k = -rr + 2; k <= rr - 2; k++) {            /* its stripe, across the way it rolls, sliding round */
-                int32_t off = (int32_t)(ph * (float)(rr - 3)), half = (int32_t)fm_sqrtf((float)(rr * rr - k * k));
-                int32_t sx = x + (int32_t)(ux * (float)off) - (int32_t)(uy * (float)k);
-                int32_t sy = y + (int32_t)(uy * (float)off) + (int32_t)(ux * (float)k);
-                if (iabs(sx - x) * iabs(sx - x) + iabs(sy - y) * iabs(sy - y) < (rr - 1) * (rr - 1) && half > 1)
-                    cv_rect(sx - 1, sy - 1, 3, 3, fm_cosf(bbox.roll) > 0.0f ? C_PINK : RGB(200, 40, 120));
-            }
-            disc(x - rr / 3, y - rr / 3, rr / 3, mix565(C_CYAN, C_INK, 200));   /* its shine, still */
-        }
+              uy = v > 0.001f ? bbox.pvy / v : 0.0f;
+        if (!safe || (ms / 90u) & 1u)
+            bx_marble(x, y, (int32_t)BX_ME, bbox.roll, ux, uy, hurt, 1);
     }
 }

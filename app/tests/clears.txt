@@ -1,7 +1,7 @@
 # CUBE DROP's clears: each one a pad chord, a different one, the bass following
 wait 600
 expect menu_to_CUBES 1
-tapkey 16
+tapkey 24
 expect mode_is_CUBES 1
 wait 1000
 wav clears.wav

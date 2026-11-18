@@ -93,8 +93,16 @@ static int c_attacked(const cpos_t *p, int sq, int by)
 }
 static int c_in_check(const cpos_t *p, int side) { return c_attacked(p, p->kpos[side < 0], -side); }
 
+/* how many moves the list being filled holds: c_gen sets it (every list is 128, the captures-only ones in quiesce
+ * 64). A move past it is dropped, never written (a position with many promoted pieces can have more: GPT's review,
+ * 18 Nov 2026) */
+#define C_MAXMOVES 128
+#define C_MAXCAPS 64
+static int c_room = C_MAXMOVES;
 static int add(cmove_t *m, int n, int from, int to, int cap, int flags, int promo)
 {
+    if (n >= c_room)
+        return n;
     m[n].from = (uint8_t)from;
     m[n].to = (uint8_t)to;
     m[n].cap = (int8_t)cap;
@@ -107,6 +115,7 @@ static int add(cmove_t *m, int n, int from, int to, int cap, int flags, int prom
 static int c_gen(const cpos_t *p, cmove_t *m, int caps_only)
 {
     int n = 0, s, t, i, d, side = p->side;
+    c_room = caps_only ? C_MAXCAPS : C_MAXMOVES;
     for (s = 0; s < 128; s++) {
         int pc = p->b[s] * side;
         if (!ONB(s)) {
@@ -348,7 +357,7 @@ static void order(cmove_t *m, int n)    /* captures first, the most valuable vic
 }
 static int quiesce(cpos_t *p, int alpha, int beta, int depth)
 {
-    cmove_t m[64];
+    cmove_t m[C_MAXCAPS];
     cundo_t u;
     int n, i, stand = c_eval(p) * p->side;
     c_nodes++;

@@ -2,7 +2,7 @@
 # come in as you clear them, and the swarm marches on the beat, quicker as it thins (tests/run_tests.sh)
 wait 600
 expect menu_to_BOUNCE 1
-tapkey 16
+tapkey 24
 expect mode_is_BOUNCE 1
 wait 6000
 expect br_seq >6
@@ -17,7 +17,7 @@ expect br_tier 4
 tap HOME
 wait 300
 expect menu_to_SWARM 1
-tapkey 16
+tapkey 24
 expect mode_is_SWARM 1
 wait 3000
 expect sw_left >10

@@ -31,20 +31,23 @@ typedef struct {
     int16_t vx0, vx1, vy, vw, vh;        /* a sliding block: its left edge goes vx0..vx1 (vw 0: none) */
 } gf_hole_t;
 
-static const int16_t GP1[][2] = {{60, 34}, {180, 34}, {180, 232}, {60, 232}};
+static const int16_t GP1[][2] = {{16, 34}, {110, 34}, {110, 140}, {224, 140}, {224, 232}, {16, 232}};   /* an L */
 static const int16_t GP2[][2] = {{16, 34}, {224, 34}, {224, 118}, {104, 118}, {104, 232}, {16, 232}};
 static const int16_t GP3[][2] = {{40, 34}, {200, 34}, {200, 232}, {40, 232}};
 static const int16_t GPW[][2] = {{16, 34}, {224, 34}, {224, 232}, {16, 232}};
 static const int16_t GP5[][2] = {{56, 34}, {184, 34}, {184, 232}, {56, 232}};
 static const int16_t GP8[][2] = {{30, 34}, {210, 34}, {210, 232}, {30, 232}};
 static const int16_t GB2[][2] = {{60, 76}};
-/* (17 Nov 2026, Nick: no hole with a straight line to the cup: a bumper on each one that had one) */
-static const int16_t GB1[][2] = {{120, 138}};
-static const int16_t GB5[][2] = {{120, 120}};
+/* (no hole has a straight line to the cup, Nick 17 Nov 2026; on 18 Nov he asked for it to come from where the tee
+ * and cup are, the green's shape, walls and water, not a bumper dropped on the line: the post stands in its own
+ * corner now) */
+static const int16_t GB1[][2] = {{84, 116}};
+static const int16_t GW4[][4] = {{130, 34, 130, 150}};
+static const int16_t GW5[][4] = {{56, 140, 140, 140}};
 static const int16_t GW3[][4] = {{40, 132, 94, 132}, {146, 132, 200, 132}};
-static const int16_t GZ4[][5] = {{1, 60, 82, 110, 56}, {1, 150, 150, 60, 50}};
-static const int16_t GB4[][2] = {{110, 172}, {122, 130}};
-static const int16_t GZ5[][5] = {{4, 56, 92, 128, 70}};
+static const int16_t GZ4[][5] = {{1, 36, 70, 74, 50}, {1, 150, 150, 60, 50}};
+static const int16_t GB4[][2] = {{110, 176}};
+static const int16_t GZ5[][5] = {{4, 56, 66, 128, 60}};
 static const int16_t GZ6[][5] = {{2, 16, 108, 150, 46}};
 static const int16_t GB7[][2] = {{70, 92}, {120, 70}, {170, 92}, {95, 132}, {145, 132}, {120, 172}, {70, 172}, {170, 172}};
 static const int16_t GW8[][4] = {{30, 133, 90, 133}, {150, 133, 210, 133}};
@@ -53,70 +56,69 @@ static const int16_t GW9[][4] = {{16, 166, 170, 166}, {70, 100, 224, 100}};
 static const int16_t GZ9[][5] = {{2, 112, 34, 30, 40}, {1, 176, 182, 44, 46}};
 #define GN(a) ((uint8_t)(sizeof a / sizeof a[0]))
 static const gf_hole_t GF_HOLES[9] = {   /* course 1: THE GARDEN (the first nine) */
-    {"THE POST", 2, 120, 210, 120, 64, GP1, GN(GP1), 0, 0, 0, 0, GB1, GN(GB1), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE POST", 3, 190, 214, 60, 62, GP1, GN(GP1), 0, 0, 0, 0, GB1, GN(GB1), 0, 0, 0, 0, 0, 0, 0, 0},
     {"DOGLEG", 3, 60, 208, 196, 72, GP2, GN(GP2), 0, 0, 0, 0, GB2, GN(GB2), 0, 0, 0, 0, 0, 0, 0, 0},
     {"THE WINDMILL", 3, 120, 212, 120, 62, GP3, GN(GP3), GW3, GN(GW3), 0, 0, 0, 0, 120, 132, 24, 0, 0, 0, 0, 0},
-    {"SAND TRAP", 3, 40, 210, 200, 58, GPW, GN(GPW), 0, 0, GZ4, GN(GZ4), GB4, GN(GB4), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"THE HILL", 2, 120, 212, 120, 58, GP5, GN(GP5), 0, 0, GZ5, GN(GZ5), GB5, GN(GB5), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"SAND TRAP", 3, 40, 212, 196, 58, GPW, GN(GPW), GW4, GN(GW4), GZ4, GN(GZ4), GB4, GN(GB4), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE HILL", 3, 76, 212, 164, 58, GP5, GN(GP5), GW5, GN(GW5), GZ5, GN(GZ5), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"WATER HAZARD", 3, 56, 210, 56, 64, GPW, GN(GPW), 0, 0, GZ6, GN(GZ6), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"BUMPER ALLEY", 3, 40, 212, 200, 52, GPW, GN(GPW), 0, 0, 0, 0, GB7, GN(GB7), 0, 0, 0, 0, 0, 0, 0, 0},
     {"SLIDING WALL", 3, 120, 212, 120, 54, GP8, GN(GP8), GW8, GN(GW8), GZ8, GN(GZ8), 0, 0, 0, 0, 0, 90, 118, 128, 32, 10},
     {"THE GAUNTLET", 4, 40, 206, 196, 66, GPW, GN(GPW), GW9, GN(GW9), GZ9, GN(GZ9), 0, 0, 120, 133, 20, 0, 0, 0, 0, 0}};
 
 /* course 2: THE CANYON, a desert at dusk (17 Nov 2026: Nick wanted more than nine holes) */
-static const int16_t CP1[][2] = {{16, 34}, {140, 34}, {140, 110}, {224, 110}, {224, 232}, {100, 232}, {100, 150}, {16, 150}};
-static const int16_t CZ1[][5] = {{1, 112, 122, 40, 30}};
-static const int16_t CB1[][2] = {{118, 134}};
-static const int16_t CB2[][2] = {{120, 150}};
-static const int16_t CB4[][2] = {{100, 166}};
-static const int16_t CB6[][2] = {{116, 132}};
-static const int16_t CB7[][2] = {{120, 142}};
-static const int16_t CW2[][4] = {{90, 60, 150, 60}, {90, 60, 90, 110}, {150, 60, 150, 110}, {90, 110, 105, 110}, {135, 110, 150, 110}};
-static const int16_t CZ2[][5] = {{4, 95, 124, 50, 30}};
+static const int16_t CP1[][2] = {{16, 34}, {130, 34}, {130, 120}, {224, 120}, {224, 232}, {100, 232}, {100, 150}, {16, 150}};
+static const int16_t CZ1[][5] = {{1, 102, 122, 30, 28}};
+static const int16_t CW2[][4] = {{90, 110, 150, 110}, {90, 60, 90, 110}, {150, 60, 150, 110}, {90, 60, 105, 60}, {135, 60, 150, 60}};
+                                         /* (the mesa: its way in on the far side) */
+static const int16_t CW7[][4] = {{86, 150, 130, 150}, {110, 100, 154, 100}};   /* the gulch's ledges, side to side */
+static const int16_t CZ7b[][5] = {{5, 86, 104, 68, 42}};
+static const int16_t CP6[][2] = {{16, 34}, {224, 34}, {224, 232}, {150, 232}, {150, 110}, {16, 110}};   /* an L */
 static const int16_t CB3[][2] = {{80, 92}, {160, 92}, {120, 132}, {70, 172}, {170, 172}};
-static const int16_t CZ4[][5] = {{2, 16, 120, 90, 30}, {2, 140, 120, 84, 30}};
+static const int16_t CZ4[][5] = {{2, 16, 120, 150, 30}, {2, 196, 120, 28, 30}};   /* the ford, far right */
 static const int16_t CW5[][4] = {{16, 180, 170, 180}, {70, 130, 224, 130}, {16, 80, 170, 80}};
-static const int16_t CZ6[][5] = {{1, 40, 66, 70, 50}, {1, 130, 108, 80, 40}, {1, 46, 150, 64, 40}};
+static const int16_t CZ6[][5] = {{1, 60, 48, 60, 40}, {1, 156, 100, 62, 40}, {1, 160, 170, 50, 36}};
 static const int16_t CP7[][2] = {{86, 34}, {154, 34}, {154, 232}, {86, 232}};
-static const int16_t CZ7[][5] = {{5, 86, 92, 68, 40}, {6, 86, 152, 68, 40}};
 static const int16_t CW8[][4] = {{40, 122, 96, 122}, {144, 122, 200, 122}};
 static const int16_t CW9[][4] = {{120, 64, 224, 64}};
 static const int16_t CZ9[][5] = {{2, 16, 102, 120, 30}, {1, 150, 160, 54, 40}};
 static const int16_t CB9[][2] = {{170, 92}, {60, 176}};
 static const gf_hole_t GF_CANYON[9] = {
-    {"THE WASH", 3, 190, 210, 46, 60, CP1, GN(CP1), 0, 0, CZ1, GN(CZ1), CB1, GN(CB1), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"THE MESA", 3, 120, 212, 120, 82, GPW, GN(GPW), CW2, GN(CW2), CZ2, GN(CZ2), CB2, GN(CB2), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"TUMBLEWEEDS", 3, 120, 212, 120, 52, GP8, GN(GP8), 0, 0, 0, 0, CB3, GN(CB3), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"DRY RIVER", 3, 60, 210, 180, 60, GPW, GN(GPW), 0, 0, CZ4, GN(CZ4), CB4, GN(CB4), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE WASH", 3, 120, 214, 40, 52, CP1, GN(CP1), 0, 0, CZ1, GN(CZ1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE MESA", 4, 120, 212, 120, 82, GPW, GN(GPW), CW2, GN(CW2), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {"TUMBLEWEEDS", 3, 196, 212, 40, 60, GP8, GN(GP8), 0, 0, 0, 0, CB3, GN(CB3), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"DRY RIVER", 4, 40, 212, 60, 52, GPW, GN(GPW), 0, 0, CZ4, GN(CZ4), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"SWITCHBACK", 4, 40, 212, 60, 54, GPW, GN(GPW), CW5, GN(CW5), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {"SANDSTORM", 3, 190, 212, 46, 50, GPW, GN(GPW), 0, 0, CZ6, GN(CZ6), CB6, GN(CB6), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"THE GULCH", 2, 120, 212, 120, 52, CP7, GN(CP7), 0, 0, CZ7, GN(CZ7), CB7, GN(CB7), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"SANDSTORM", 3, 188, 214, 46, 60, CP6, GN(CP6), 0, 0, CZ6, GN(CZ6), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE GULCH", 3, 120, 212, 120, 52, CP7, GN(CP7), CW7, GN(CW7), CZ7b, GN(CZ7b), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"CANYON MILL", 3, 120, 212, 120, 58, GP3, GN(GP3), CW8, GN(CW8), 0, 0, 0, 0, 120, 122, 22, 60, 150, 172, 32, 10},
     {"THE BIG ONE", 4, 40, 212, 190, 46, GPW, GN(GPW), CW9, GN(CW9), CZ9, GN(CZ9), CB9, GN(CB9), 0, 0, 0, 0, 0, 0, 0, 0}};
 /* course 3: THE CASTLE, its halls by torchlight */
-static const int16_t KW1[][4] = {{16, 130, 95, 130}, {145, 130, 224, 130}};
-static const int16_t KB1[][2] = {{70, 92}, {170, 92}, {120, 132}};
+static const int16_t KW1[][4] = {{16, 130, 150, 130}, {190, 130, 224, 130}};   /* the gate, off to the right */
+static const int16_t KB1[][2] = {{120, 88}, {204, 182}};
 static const int16_t KZ2[][5] = {{2, 16, 92, 140, 30}, {2, 84, 152, 140, 30}};
 static const int16_t KW3[][4] = {{50, 80, 190, 80}, {190, 80, 190, 190}, {80, 190, 190, 190}, {50, 80, 50, 150}};
-static const int16_t KB4[][2] = {{60, 82}, {120, 82}, {180, 82}, {90, 122}, {150, 122}, {60, 162}, {120, 162}, {180, 162}};
+static const int16_t KP4[][2] = {{16, 34}, {224, 34}, {224, 110}, {96, 110}, {96, 232}, {16, 232}};   /* an L: the hall turns */
+static const int16_t KB4[][2] = {{36, 150}, {76, 164}, {48, 74}, {110, 58}, {150, 86}, {186, 56}};
 static const int16_t KZ5[][5] = {{2, 16, 112, 90, 28}, {2, 134, 112, 90, 28}};
 static const int16_t KP6[][2] = {{16, 34}, {224, 34}, {224, 232}, {136, 232}, {136, 118}, {16, 118}};
 static const int16_t KB6[][2] = {{180, 176}};
-static const int16_t KZ7[][5] = {{4, 16, 72, 208, 28}, {4, 16, 142, 208, 28}};
-static const int16_t KB7[][2] = {{120, 118}, {70, 186}};
+static const int16_t KZ7[][5] = {{4, 16, 78, 208, 24}, {4, 16, 128, 208, 24}};
+static const int16_t KW7[][4] = {{16, 120, 160, 120}, {80, 70, 224, 70}};   /* the steps' landings */
+static const int16_t KB7[][2] = {{70, 186}};
 static const int16_t KW8[][4] = {{40, 142, 96, 142}, {144, 142, 200, 142}};
 static const int16_t KB8[][2] = {{80, 84}, {160, 84}};
 static const int16_t KW9[][4] = {{16, 172, 150, 172}, {90, 112, 224, 112}};
 static const int16_t KZ9[][5] = {{2, 16, 40, 60, 40}, {1, 170, 40, 54, 40}};
 static const int16_t KB9[][2] = {{60, 142}};
 static const gf_hole_t GF_CASTLE[9] = {
-    {"GATEHOUSE", 2, 120, 212, 120, 56, GPW, GN(GPW), KW1, GN(KW1), 0, 0, KB1, GN(KB1), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"GATEHOUSE", 3, 60, 212, 60, 56, GPW, GN(GPW), KW1, GN(KW1), 0, 0, KB1, GN(KB1), 0, 0, 0, 0, 0, 0, 0, 0},
     {"THE MOAT", 3, 200, 212, 40, 56, GPW, GN(GPW), 0, 0, KZ2, GN(KZ2), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"SPIRAL STAIR", 3, 120, 214, 120, 135, GPW, GN(GPW), KW3, GN(KW3), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {"THE ARMORY", 3, 120, 212, 120, 48, GP8, GN(GP8), 0, 0, 0, 0, KB4, GN(KB4), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE ARMORY", 3, 56, 214, 200, 66, KP4, GN(KP4), 0, 0, 0, 0, KB4, GN(KB4), 0, 0, 0, 0, 0, 0, 0, 0},
     {"DRAWBRIDGE", 3, 120, 212, 120, 56, GPW, GN(GPW), 0, 0, KZ5, GN(KZ5), 0, 0, 0, 0, 0, 80, 128, 96, 32, 8},
     {"THRONE ROOM", 3, 180, 208, 44, 72, KP6, GN(KP6), 0, 0, 0, 0, KB6, GN(KB6), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"DUNGEON STEPS", 3, 120, 212, 120, 48, GPW, GN(GPW), 0, 0, KZ7, GN(KZ7), KB7, GN(KB7), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"DUNGEON STEPS", 4, 200, 214, 40, 48, GPW, GN(GPW), KW7, GN(KW7), KZ7, GN(KZ7), KB7, GN(KB7), 0, 0, 0, 0, 0, 0, 0, 0},
     {"TWIN TOWERS", 3, 120, 212, 120, 52, GP3, GN(GP3), KW8, GN(KW8), 0, 0, KB8, GN(KB8), 120, 142, 22, 0, 0, 0, 0, 0},
     {"KING'S HOLE", 4, 200, 212, 120, 50, GPW, GN(GPW), KW9, GN(KW9), KZ9, GN(KZ9), KB9, GN(KB9), 0, 0, 0, 0, 0, 0, 0, 0}};
 #define GF_NCOURSE 3
@@ -169,7 +171,7 @@ static void gf_sounds(void)
     k_slot_rel(GF_BASS, 0.2f);
     k_slot_rel(GF_PAD, 1.6f);
     k_main_slot = GF_PUTT;
-    k_main.rev_mix = 0.2f, k_main.rev_secs = 1.8f, k_main.shimmer = 0.1f, k_main.dly_mix = 0.1f;
+    k_main.rev_mix = 0.2f, k_main.rev_secs = 1.8f, k_main.shimmer = 0.04f, k_main.dly_mix = 0.1f;
 }
 static void gf_groove(uint32_t t, uint32_t step)   /* a soft night groove; the last hole, a kick under it */
 {
@@ -656,7 +658,7 @@ static void gf_nav(int dx, int dy, int sel)
 static void gf_tick(void)
 {
     uint32_t dt = arc_dt(&gf.last), now = plat_ms();
-    int i, n, pull = held(9) || HELD_D;
+    int i, n, pull = HELD_S || HELD_D;
     if (gf.phase == 6)                   /* (choosing the course: nothing rolls) */
         return;
     if (gf.phase == 2 && now - gf.phase_at > (gf.card[gf.hole] == 1 ? 2600u : 1700u)) {   /* sunk: the card */
@@ -990,7 +992,7 @@ static void gf_scene(void)
         tcat(s, n);
         tcat(s, gf.card[gf.hole] == 1 ? " STROKE" : " STROKES");
         text_c(120, 114, &FONT_M, s, d < 0 ? C_YEL : d == 0 ? C_CYAN : C_PINK);
-        text_c(120, 142, &FONT_T, gf.hole < 8 ? "A: NEXT HOLE" : "A: THE CARD", C_GHOST);
+        text_c(120, 142, &FONT_T, gf.hole < 8 ? "TOP KEY: NEXT HOLE" : "TOP KEY: THE CARD", C_GHOST);
     } else if (gf.phase == 5) {          /* the round's card */
         int tot = 0, par = 0, k;
         cv_rect(14, 40, 212, 170, C_BG);
@@ -1014,7 +1016,7 @@ static void gf_scene(void)
         itos((int32_t)gf_best, n);
         tcat(s, n);
         text_c(120, 160, &FONT_XS, s, C_CYAN);
-        text_c(120, 186, &FONT_T, "A: NEW COURSE   HOME: MENU", C_GHOST);
+        text_c(120, 186, &FONT_T, "TOP KEY: NEW COURSE   HOME: MENU", C_GHOST);
     } else if (gf.phase == 6) {          /* the course chooser: three courses, nine holes each */
         int k;
         cv_rect(24, 52, 192, 150, C_BG);
@@ -1039,7 +1041,7 @@ static void gf_scene(void)
             }
             text_c(120, y + 15, &FONT_XS, s, on ? GF_TURF[k][0] : C_GHOST);
         }
-        text_c(120, 192, &FONT_T, "UP DOWN: COURSE   A: PLAY", C_GHOST);
+        text_c(120, 192, &FONT_T, "UP DOWN: COURSE   TOP KEY: PLAY", C_GHOST);
     } else if (gf.phase == 0 && !gf.charging && gf.strokes == 0 && gf.hole == 0 && ms - gf.intro_at > 1800u)
-        text_c(120, 226, &FONT_T, "C E: AIM   HOLD A, LET GO: PUTT", C_GHOST);
+        text_c(120, 226, &FONT_T, "LEFT RIGHT: AIM   HOLD TOP KEY: PUTT", RGB(225, 250, 225));
 }

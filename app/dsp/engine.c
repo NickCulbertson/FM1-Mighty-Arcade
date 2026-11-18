@@ -327,6 +327,15 @@ static int defer_put(int32_t note, uint32_t vel, int32_t gate)
     return 0;
 }
 static void defer_run(void);
+/* (kit) a waiting note let go before it started: it never starts (a held one would start with no key to let it go,
+ * and ring on: GPT's review, 18 Nov 2026). note < 0: every one; held_only: only the ones a key holds (gate < 0) */
+static void defer_drop(int32_t note, int held_only)
+{
+    uint32_t i;
+    for (i = 0; i < NDEFER; i++)
+        if (defer[i].on && (note < 0 || defer[i].note == note) && (!held_only || defer[i].gate < 0))
+            defer[i].on = 0;
+}
 void eng_note_on(int32_t note, uint32_t vel, int32_t gate)
 {
     const eng_sound_t *s = snd;
@@ -504,6 +513,7 @@ void eng_note_on(int32_t note, uint32_t vel, int32_t gate)
 void eng_note_release(int32_t note)      /* its voices into their release, an arp's gated ones too */
 {
     uint32_t i;
+    defer_drop(note, 0);
     for (i = 0; i < ENG_NVOICE; i++)
         if (vc[i].on && vc[i].note == note)
             voice_release(&vc[i]);
@@ -512,6 +522,7 @@ void eng_note_release(int32_t note)      /* its voices into their release, an ar
 void eng_note_off(int32_t note)
 {
     uint32_t i;
+    defer_drop(note, 1);
     for (i = 0; i < ENG_NVOICE; i++)
         if (vc[i].on && vc[i].note == note && vc[i].gate < 0)
             voice_release(&vc[i]);
@@ -531,10 +542,19 @@ void eng_note_kill(int32_t note)         /* the voices playing note, out in a fe
 void eng_release_all(void)
 {
     uint32_t i;
+    defer_drop(-1, 0);                   /* every waiting note, timed ones too: DICE SYNTH's new roll lets the old
+                                          * sound go, its audition note with it (GPT, 18 Nov 2026) */
     for (i = 0; i < ENG_NVOICE; i++)
         voice_release(&vc[i]);
 }
 
+uint32_t eng_held(int32_t note)          /* (kit, the tests) voices a key still holds (note < 0: any note) */
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < ENG_NVOICE; i++)
+        n += vc[i].on && !vc[i].rel && vc[i].gate < 0 && (note < 0 || vc[i].note == note);
+    return n;
+}
 uint32_t eng_active(void)
 {
     uint32_t i, n = 0;

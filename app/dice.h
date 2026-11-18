@@ -287,16 +287,23 @@ static void dc_apply(void)
     p.rev_secs = dgen.rev_secs * (0.5f + space * 0.5f);
     p.rev_dark = dgen.rev_dark;
     p.shimmer = dgen.shimmer;
-    s->s = dgen.s;
-    for (i = 0; i < 4u; i++)             /* the modulators' own envelopes follow LENGTH too */
-        if (!(ENG_CAR[dgen.alg] >> i & 1u)) {
-            s->s.op[i].att *= len;
-            s->s.op[i].dec *= len;
-        }
-    s->p = p;
-    k_main = p;
-    k_main_slot = (uint8_t)sl;
-    dc_slot = (uint8_t)sl;
+    {
+        eng_sound_t ns = dgen.s;         /* built whole first, then handed to the audio in one locked step: the render
+                                          * (an interrupt) never sees half of it (GPT's review, 18 Nov 2026) */
+        uint32_t f;
+        for (i = 0; i < 4u; i++)         /* the modulators' own envelopes follow LENGTH too */
+            if (!(ENG_CAR[dgen.alg] >> i & 1u)) {
+                ns.op[i].att *= len;
+                ns.op[i].dec *= len;
+            }
+        f = plat_lock();
+        s->s = ns;
+        s->p = p;
+        k_main = p;
+        k_main_slot = (uint8_t)sl;
+        dc_slot = (uint8_t)sl;
+        plat_unlock(f);
+    }
 }
 
 /* ------------------------------------------------------------------- play --- */

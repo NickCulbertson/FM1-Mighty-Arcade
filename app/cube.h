@@ -672,14 +672,14 @@ static void cu_scene(void)
     }
     cv_text(202, WY + 130, &FONT_T, "UP", C_GHOST);
     cv_text(202, WY + 141, &FONT_T, "TURNS", C_PURP);
-    cv_text(202, WY + 160, &FONT_T, "A", C_GHOST);
+    cv_text(202, WY + 160, &FONT_T, "TOP", C_GHOST);
     cv_text(202, WY + 171, &FONT_T, "DROPS", C_PURP);
     cv_text(202, WY + 188, &FONT_T, "4 POP", C_GHOST);
     if (cu.over) {
         cv_rect(WX + 16, WY + 70, WW * CELL - 32, 56, C_BG);
         frame_rect(WX + 16, WY + 70, WW * CELL - 32, 56, C_YEL);
         text_c(WX + WW * CELL / 2, WY + 76, &FONT_M, "THE END", C_YEL);
-        text_c(WX + WW * CELL / 2, WY + 104, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(WX + WW * CELL / 2, WY + 104, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
 }
 

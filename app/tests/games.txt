@@ -3,77 +3,77 @@ wait 600
 shot menu.png
 # down to SOLITAIRE (D), start it (A)
 expect menu_to_SOLITAIRE 1
-tapkey 16
+tapkey 24
 expect mode_is_SOLITAIRE 1
 wait 300
 shot soli0.png
 # up to the top row (C#): the stock; draw three (A A A)
-tapkey 8
-tapkey 16
-tapkey 16
-tapkey 16
+tapkey 1
+tapkey 24
+tapkey 24
+tapkey 24
 expect so_moves 3
 # right to the waste, take its card, A again on it: home if it can go, else let go
-tapkey 11
-tapkey 16
+tapkey 4
+tapkey 24
 shot soli1.png
-tapkey 16
+tapkey 24
 expect so_held -1
 # down into the columns; walk them taking the bottom card and trying it on each other column
-tapkey 9
-tapkey 16
-tapkey 11
-tapkey 16
-tapkey 11
-tapkey 16
+tapkey 2
+tapkey 24
+tapkey 4
+tapkey 24
+tapkey 4
+tapkey 24
 shot soli2.png
 wait 500
 tap HOME
 expect mode 0
 # CUBE DROP: right of SOLITAIRE
 expect menu_to_CUBES 1
-tapkey 16
+tapkey 24
 expect mode_is_CUBES 1
 wait 1500
 shot cube0.png
 # move, turn, drop, many times
-tapkey 7
-tapkey 8
-tapkey 16
+tapkey 0
+tapkey 1
+tapkey 24
 wait 200
-tapkey 11
-tapkey 11
-tapkey 11
-tapkey 16
+tapkey 4
+tapkey 4
+tapkey 4
+tapkey 24
 wait 200
-tapkey 7
-tapkey 7
-tapkey 7
-tapkey 7
-tapkey 16
+tapkey 0
+tapkey 0
+tapkey 0
+tapkey 0
+tapkey 24
 wait 200
-tapkey 9
-tapkey 9
-tapkey 9
+tapkey 2
+tapkey 2
+tapkey 2
 wait 3000
 shot cube1.png
 expect cu_score >10
 # hold a direction: it repeats
-key 11 down
+key 4 down
 wait 600
-key 11 up
-tapkey 16
+key 4 up
+tapkey 24
 wait 30000
 shot cube2.png
 wait 30000
 shot cube3.png
 expect cu_over 1
-tapkey 16
+tapkey 24
 wait 400
 expect cu_over 0
 tap HOME
 expect menu_to_CHESS 1
-tapkey 16
+tapkey 24
 expect mode_is_CHESS 1
 spin ALGO 2
 expect depth 3

@@ -589,7 +589,7 @@ static float knob_secs(int32_t v) { return 0.001f * fm_exp2f((float)v * 0.132877
 /* Mighty Arp's sounds the prototypes play */
 enum { S_TINES, S_DREAM, S_VIBES, S_MARIMBA, S_CELESTA, S_CRYSTAL, S_TUBE, S_HARP, S_KOTO, S_NYLON, S_FMBASS,
        S_16BASS, S_SQBASS, S_KICK, S_SNARE, S_HAT, S_LOGDRUM, S_BRASSPAD, S_GLASSPAD, S_DRONE, S_DEEPSEA, S_SYNCLEAD,
-       S_METAL, S_CHIP, S_FLUTE, S_SONAR, S_SQLEAD, S_SAWPLUCK, NKSND };
+       S_METAL, S_CHIP, S_FLUTE, S_SONAR, S_SQLEAD, S_SAWPLUCK, S_SOFTSAW, NKSND };
 static const ksnd_t KSND[NKSND] = {
     {"TINES EP", 4, 0, {{CARRIER(1, 0, 1.0f), OP(1, 0, 0.25f, 0, 0, 0, 1.2f, 0.15f),
                          OP(1, 3, 0.35f, 0, 1, 0, 2.0f, 0.08f), OP(14, 0, 0.21f, 0, 0, 0, 0.07f, 0)}, 0, 0},
@@ -672,6 +672,11 @@ static const ksnd_t KSND[NKSND] = {
     {"SAW PLUCK", 0, 6, {{CARRIER(1, 0, 1.0f), OP(1, 0, 0.4f, 0, 0, 0, 0.25f, 0.05f),
                           OP(1, 0, 0.3f, 0, 0, 0, 0.2f, 0), OP(1, 0, 0.3f, 0, 0, 0, 0.2f, 0)}, 0, 0},
      0, 60, 0, 70, 1.0f},
+    /* Mighty Arp's SOFT SAW: a reed-like buzz (operator 4's feedback through the chain), a breathy attack. (Its
+     * vibrato and legato glide stay in Mighty Arp: here it plays chords and loops, a voice a note) */
+    {"SOFT SAW", 2, 5, {{CARRIER(1, 0, 0.9f), OP(1, 0, 0.2f, 0, 0, 0.03f, 0.4f, 0.7f),
+                         OP(3, 0, 0.1f, 0, 0, 0.03f, 0.3f, 0.6f), OP(1, 0, 0.12f, 0, 0, 0.05f, 0.4f, 0.6f)}, 0, 0},
+     30, 70, 85, 40, 1.0f},
 };
 
 /* the main sound's knobs: everything a voice does not keep (the LFO, the filter, the effects) */
@@ -724,12 +729,18 @@ typedef struct {
 static kslot_t k_slot[K_NSLOT];
 static eng_params_t k_main;              /* the LFO, the filter, the effects: the UI sets them, the render reads them */
 static uint8_t k_main_slot;              /* the slot whose sound eng_set gets (a note with no slot of its own) */
-static void k_slot_set(uint32_t slot, const ksnd_t *k)
+static void k_slot_set(uint32_t slot, const ksnd_t *k)   /* built aside, then handed to the audio in one locked step:
+                                                         * the render (an interrupt) never plays a note on half of it
+                                                         * (GPT's review, 18 Nov 2026) */
 {
-    kslot_t *s = &k_slot[slot % K_NSLOT];
-    s->s = k->s;
-    s->p = k_main;
-    kp_sound(&s->p, k);
+    kslot_t n, *s = &k_slot[slot % K_NSLOT];
+    uint32_t f;
+    n.s = k->s;
+    n.p = k_main;
+    kp_sound(&n.p, k);
+    f = plat_lock();
+    *s = n;
+    plat_unlock(f);
 }
 
 /* a slot's release, at most secs: generated music piles up voices, and a voice taken while it still rings is a blip */

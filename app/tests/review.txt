@@ -1,0 +1,160 @@
+# GPT review fixes, 18 Nov 2026 (one check each)
+# 1. a held note let go while it waits for a voice never starts: DICE SYNTH, ten keys held (every voice), three more
+#    tapped quickly (4 to 6 ms: let go before a voice frees for them); all let go: nothing still held (before the fix, the tapped ones rang on)
+wait 600
+expect menu_to_DICE_SYNTH 1
+tapkey 24
+expect mode_is_DICE_SYNTH 1
+wait 300
+key 5 down
+key 6 down
+key 8 down
+key 9 down
+key 10 down
+key 11 down
+key 12 down
+key 13 down
+key 14 down
+key 15 down
+wait 300
+key 16 down
+wait 5
+key 16 up
+wait 60
+expect held_key_16 0
+wait 140
+key 17 down
+wait 4
+key 17 up
+wait 60
+expect held_key_17 0
+wait 140
+key 18 down
+wait 6
+key 18 up
+wait 60
+expect held_key_18 0
+wait 140
+key 5 up
+key 6 up
+key 8 up
+key 9 up
+key 10 up
+key 11 up
+key 12 up
+key 13 up
+key 14 up
+key 15 up
+wait 800
+expect eng_held 0
+# 2. every chord voice in range, each above the last
+expect h_bad 0
+# 3. a position with more moves than a list holds: capped, no crash
+expect ch_many 128
+tap HOME
+wait 300
+# 4. every game, then HOME: the menu rolls its own music (not another game's memory read as SOLITAIRE)
+expect menu_to_BOUNCE 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_SWARM 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_DRIFT 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_CHESS 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_SOLITAIRE 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_WORM 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_CUBES 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_DEFUSE 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_GOLF 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_PINBALL 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_DODGE 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_DARK 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_DROP 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_POOL 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_ROWS 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_2048 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+expect menu_to_CHECKERS 1
+tapkey 24
+wait 700
+tap HOME
+wait 400
+expect mn_ok 1
+# (each menu_to_ above only answers 1 in the menu: so HOME got back each time)
+expect menu_to_POOL 1

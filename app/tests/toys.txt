@@ -3,7 +3,7 @@
 wait 600
 shot page4.png
 expect menu_to_DROP 1
-tapkey 16
+tapkey 24
 expect mode_is_DROP 1
 wait 300
 expect dp_balls 0
@@ -21,12 +21,12 @@ key 10 up
 key 15 down 100
 wait 40
 key 15 up
-key 20 down 100
+key 1 down 100
 wait 40
-key 20 up
-key 26 down 100
+key 1 up
+key 2 down 100
 wait 40
-key 26 up
+key 2 up
 wait 300
 expect dp_balls 6
 shot drop_falling.png
@@ -48,7 +48,7 @@ shot drop_pins.png
 tap HOME
 wait 300
 expect menu_to_DODGE 1
-tapkey 16
+tapkey 24
 expect mode_is_DODGE 1
 wait 600
 expect bx_balls 1
@@ -70,7 +70,7 @@ shot bounce_hit.png
 tap HOME
 wait 300
 expect menu_to_DROP 1
-tapkey 16
+tapkey 24
 expect mode_is_DROP 1
 spin K1 3
 wait 100

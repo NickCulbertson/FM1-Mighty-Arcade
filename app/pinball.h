@@ -619,7 +619,7 @@ static void pb_tick(void)
             }
         } else if (!keys[k])
             pb.flip_at[k] = 0;
-    pull = held(9) || HELD_D;            /* the plunger: hold, let go */
+    pull = HELD_S || HELD_D;            /* the plunger: hold, let go */
     if (!pull)
         pb.armed = 1;
     if (pull && !pb.plunging && pb.armed) {
@@ -1191,12 +1191,12 @@ static void pb_scene(void)
     }
     if (pb.over) {
         char bs[24], bn[12];
-        over_box("THE END", "A: AGAIN   HOME: MENU");
+        over_box("THE END", "TOP KEY: AGAIN   HOME: MENU");
         itos((int32_t)pb_best, bn);
         tcpy(bs, "BEST ");
         tcat(bs, bn);
         text_c(120, 150, &FONT_XS, bs, C_YEL);
     } else if (pb_live() == 1 && pb.b[0].on && pb.b[0].lane && !pb.plunging && pb.b[0].y > (float)(PB_PLUNGE_Y - 20))
-        text_c(110, SY(400), &FONT_T, "HOLD A, LET GO", C_GHOST);
+        text_c(110, SY(400), &FONT_T, "HOLD TOP KEY, LET GO", C_GHOST);
 }
 #undef SY

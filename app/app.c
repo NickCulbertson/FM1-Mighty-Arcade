@@ -160,12 +160,13 @@ static int h_note(int k)                 /* the chord's voice k (1..4 the upper 
     int n = h_minor() ? 4 : 5, up = 0;
     if (k < 1)
         return h_bass();
-    while (v[k] == HV || k >= n) {      /* (the minor ones have four) */
+    while (k >= n || v[k] == HV) {      /* (the minor ones have four; k checked before v[k] is read: the fanfare asks
+                                          * for up to the eighth, GPT's review, 18 Nov 2026) */
         k -= n - 1;
         up += 12;
         if (k < 1)
             k = 1;
-        if (v[k] != HV && k < n)
+        if (k < n && v[k] != HV)
             break;
     }
     return key_root() + v[k] + up;
@@ -446,18 +447,24 @@ void app_say(const char *a, const char *b)
 
 static void fx(void)                     /* the room: long and wide, shimmering */
 {
-    kp_defaults(&k_main);
-    k_main.rev_mix = 0.36f;
-    k_main.rev_secs = 7.0f;
-    k_main.rev_dark = 0.35f;
-    k_main.shimmer = 0.22f;
-    k_main.dly_samples = step_samples() * 3.0f;
-    k_main.dly_fb = 0.42f;
-    k_main.dly_mix = 0.2f;
-    k_main.chorus = 0.3f;
-    k_main.lfo_shape = LFO_DRIFT;
-    k_main.lfo_hz = 0.2f;
-    k_main.vib = 0.04f;
+    eng_params_t p;                      /* built aside, then handed over locked (the render, an interrupt, reads it) */
+    uint32_t f;
+    kp_defaults(&p);
+    p.rev_mix = 0.36f;
+    p.rev_secs = 7.0f;
+    p.rev_dark = 0.35f;
+    p.shimmer = 0.06f;               /* (was 0.22: its octaves-up tail clashed over the chord changes, Nick
+                                          * heard it in the menu, 18 Nov 2026; every game's a third of what it was) */
+    p.dly_samples = step_samples() * 3.0f;
+    p.dly_fb = 0.42f;
+    p.dly_mix = 0.2f;
+    p.chorus = 0.3f;
+    p.lfo_shape = LFO_DRIFT;
+    p.lfo_hz = 0.2f;
+    p.vib = 0.04f;
+    f = plat_lock();
+    k_main = p;
+    plat_unlock(f);
 }
 
 static void knob_say(const char *name, int32_t v, const char *unit)
@@ -519,25 +526,25 @@ static void select_here(void)
 }
 
 /* ------------------------------------------------------------------ modes --- */
-/* the games, as the menu's grid has them (three a row). Page 1, the favourites: the arcade three on top, PINBALL
- * in the middle with CHESS and SOLITAIRE, WORM, CUBES and DEFUSE below. Page 2, the rest, DICE SYNTH in its middle
- * (Nick, 17 Nov 2026) */
+/* the games, as the menu's grid has them (three a row). Page 1, the favourites: the arcade three on top, DICE SYNTH
+ * in the middle with CHESS and SOLITAIRE, WORM, CUBES and DEFUSE below. Page 2, the rest, DROP in its middle and POOL
+ * beside it (Nick, 17 Nov 2026) */
 enum { M_MENU,
        M_BRICK, M_SWARM, M_DRIFT,        /* page 1 */
-       M_CHESS, M_PINBALL, M_SOLI,
+       M_CHESS, M_DICE, M_SOLI,
        M_SNAKE, M_CUBE, M_MINES,
-       M_GOLF, M_DROP, M_BOUNCE,         /* page 2 */
-       M_LIGHTS, M_DICE, M_CHECK,
-       M_FOUR, M_2048,
+       M_GOLF, M_PINBALL, M_BOUNCE,      /* page 2 */
+       M_LIGHTS, M_DROP, M_POOL,
+       M_FOUR, M_2048, M_CHECK,
        NMODE };
 static const char *const MODE_NAME[NMODE] = {"MENU",
                                              "BOUNCE", "SWARM", "DRIFT",
-                                             "CHESS", "PINBALL", "SOLITAIRE",
+                                             "CHESS", "DICE SYNTH", "SOLITAIRE",
                                              "WORM", "CUBES", "DEFUSE",
-                                             "GOLF", "DROP", "DODGE",
-                                             "LIGHTS", "DICE SYNTH", "CHECKERS",
-                                             "ROWS", "2048"};
-static uint8_t mode = M_MENU, menu_at = M_PINBALL;   /* menu_at 0: the PLAYERS switch */
+                                             "GOLF", "PINBALL", "DODGE",
+                                             "DARK", "DROP", "POOL",
+                                             "ROWS", "2048", "CHECKERS"};
+static uint8_t mode = M_MENU, menu_at = M_DICE;   /* menu_at 0: the PLAYERS switch */
 /* K4 in the games: how loud their effects are (kit.h's k_fx); chess (its knobs its own), the menu and DICE SYNTH
  * (an instrument, its knobs its own) keep theirs */
 static uint8_t fx_level = 100;
@@ -558,7 +565,7 @@ static int score_game(uint32_t m)
 static int solo_game(uint32_t m)
 {
     return m == M_SOLI || m == M_LIGHTS || m == M_PINBALL || m == M_GOLF ||
-           m == M_DROP || m == M_BOUNCE || m == M_DICE;
+           m == M_DROP || m == M_BOUNCE || m == M_DICE || m == M_POOL;
 }   /* one player */
 static int arcade_game(uint32_t m) { return m == M_BRICK || m == M_SWARM || m == M_DRIFT; }
 
@@ -598,6 +605,7 @@ static uint32_t grid_next_n(uint32_t n); /* the next n-th of a beat's quarter (2
 #include "pinball.h"
 #include "golf.h"
 #include "toys.h"
+#include "pool.h"
 #include "dice.h"
 
 /* --------------------------------------------- two players, taking turns --- */
@@ -622,13 +630,20 @@ static int game_over_now(void)
     }
 }
 
-/* the keys each game listens to (as pitch classes: bit 0 C, 1 C#, 2 D, 4 E, 9 A), so only those light. C left,
- * E right, C# up, D down, A select; A also lit whenever it's what starts the next game or turn */
+/* the parts of the pad each game listens to, so only their keys light (pk_keys). Held like a controller (Nick,
+ * 18 Nov 2026): the pad at the keyboard's bottom end (left, up, down, right), select at its top end; select also lit
+ * whenever it's what starts the next game or turn. (PK_C: left, PK_E: right, PK_A: select, the names from the first
+ * layout, C / E / A) */
 #define PK_C (1u << 0)
 #define PK_U (1u << 1)
 #define PK_D (1u << 2)
-#define PK_E (1u << 4)
-#define PK_A (1u << 9)
+#define PK_E (1u << 3)
+#define PK_A (1u << 4)
+static uint32_t pk_keys(uint32_t w)      /* those parts as keys */
+{
+    return (w & PK_C ? 1u << PAD_L : 0u) | (w & PK_U ? 1u << PAD_U : 0u) | (w & PK_D ? 1u << PAD_D : 0u) |
+           (w & PK_E ? 1u << PAD_R : 0u) | (w & PK_A ? PAD_SEL_KEYS : 0u);
+}
 static uint32_t play_pcs(void)
 {
     uint32_t all = PK_C | PK_U | PK_D | PK_E | PK_A, arrows = PK_C | PK_U | PK_D | PK_E, w;
@@ -640,9 +655,10 @@ static uint32_t play_pcs(void)
     case M_GOLF: w = gf.phase == 6 ? PK_U | PK_D | PK_A : PK_C | PK_E | PK_A | PK_D; break;   /* aim; A (or D)
                                                                   * held: the putt (first, the course: up, down, A) */
     case M_BOUNCE: w = arrows; break;                            /* DODGE: move, nothing else */
+    case M_POOL: w = po.phase == 2 ? PK_A : all; break;          /* aim (C# D finely); A held: the shot */
     case M_SNAKE: case M_2048: w = arrows; break;                /* steer, slide */
     default: w = all; break;                                     /* the menu, the board and puzzle games, CUBE
-                                                                  * DROP, BUMPIN BALL, DEFUSE, LIGHTS, SOLITAIRE */
+                                                                  * DROP, BUMPIN BALL, DEFUSE, DARK, SOLITAIRE */
     }
     if (mode != M_MENU && (game_over_now() || tp.phase))   /* A: again, or the next player's turn */
         w |= PK_A;
@@ -709,7 +725,7 @@ static int turns_select(void)            /* A, while a turn changes hands: 1 use
         game_restart();
         return 1;
     }
-    return game_over_now();              /* (its own "A: again" waits for the turn) */
+    return game_over_now();              /* (its own "top key: again" waits for the turn) */
 }
 static void turns_scene(void)
 {
@@ -731,7 +747,7 @@ static void turns_scene(void)
     if (tp.phase == 1) {
         text_c(120, 104, &FONT_M, "PLAYER 2", C_PINK);
         text_c(120, 130, &FONT_XS, "YOUR TURN", C_INK);
-        text_c(120, 156, &FONT_T, "A: START", C_GHOST);
+        text_c(120, 156, &FONT_T, "TOP KEY: START", C_GHOST);
     } else {
         itos((int32_t)tp.score[1], n);
         tcpy(t, "PLAYER 2   ");
@@ -740,7 +756,7 @@ static void turns_scene(void)
         text_c(120, 122, &FONT_M, tp.score[0] > tp.score[1] ? "P1 WINS!" : tp.score[1] > tp.score[0] ? "P2 WINS!"
                                                                                                   : "A TIE!",
                C_YEL);
-        text_c(120, 156, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(120, 156, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
 }
 
@@ -806,6 +822,7 @@ static uint32_t grid_next_n(uint32_t n)
         t += gr_six, s++;
     return t;
 }
+static void mn_groove(uint32_t t, uint32_t step);   /* (the menu's music: below, by enter) */
 static void groove_reset(void)
 {
     gr_next_t = k_at(0.2f);
@@ -814,9 +831,9 @@ static void groove_reset(void)
 }
 static void groove_run(void)
 {
-    uint32_t bpm = mode == M_CUBE ? cu_bpm() : mode == M_SNAKE ? sn_bpm() : mode == M_CHECK ? 84u : mode == M_SWARM ? sw_bpm() : mode == M_DRIFT ? dr_bpm()
+    uint32_t bpm = mode == M_CUBE ? cu_bpm() : mode == M_SNAKE ? sn_bpm() : mode == M_CHECK ? 84u : mode == M_LIGHTS ? 36u : mode == M_SWARM ? sw_bpm() : mode == M_DRIFT ? dr_bpm() : mode == M_POOL ? po_bpm()
                  : sq_game() >= 0 ? sq_cfg[sq_game()].bpm : 72u;
-    uint32_t six = (uint32_t)(SR_F * 15.0f / (float)bpm);
+    uint32_t six = (uint32_t)(SR_F * 15.0f / (float)bpm);   /* (DARK at half speed, 36: Nick, 17 Nov 2026) */
     gr_six = six;
     k_in_music = 1;
     while ((int32_t)(gr_next_t - k_at(0.2f)) < 0) {
@@ -824,6 +841,7 @@ static void groove_run(void)
         case M_CUBE: cu_groove(gr_next_t, gr_step); break;
         case M_SNAKE: sn_groove(gr_next_t, gr_step); break;
         case M_DICE: break;              /* (an instrument: no groove under it) */
+        case M_MENU: mn_groove(gr_next_t, gr_step); break;   /* (its own: not SOLITAIRE's over another game's state) */
         case M_MINES: mi_groove(gr_next_t, gr_step); break;
         case M_2048: tw_groove(gr_next_t, gr_step); break;
         case M_CHECK: ck_groove(gr_next_t, gr_step); break;
@@ -836,6 +854,7 @@ static void groove_run(void)
         case M_GOLF: gf_groove(gr_next_t, gr_step); break;
         case M_DROP: dp_groove(gr_next_t, gr_step); break;
         case M_BOUNCE: bx_groove(gr_next_t, gr_step); break;
+        case M_POOL: po_groove(gr_next_t, gr_step); break;
         default: so_groove(gr_next_t, gr_step); break;
         }
         if (mode != M_MENU && mode != M_DICE)
@@ -846,6 +865,47 @@ static void groove_run(void)
     k_in_music = 0;
 }
 
+/* the menu's own music (GPT's review, 18 Nov 2026): it played SOLITAIRE's groove over whatever game had the arena
+ * last, its drums and notes made from that game's numbers; random, which Nick liked ("leave it random"), but read
+ * from memory not its own. Now the menu rolls its own each time a game hands back to it: how much of the kit (none,
+ * often), whether the keys play, and their eight notes. From the start: calm, as before */
+static struct {
+    uint8_t tier, keys, pat[8];          /* pat: each eighth's chord tone + 1 (0 rests) */
+} mn;
+static void menu_roll(void)
+{
+    static const uint8_t TIER[8] = {0, 0, 0, 1, 2, 3, 4, 5};
+    int c;
+    mn.tier = TIER[(kr() >> 16) % 8u];
+    mn.keys = (uint8_t)((kr() >> 16) % 2u);
+    for (c = 0; c < 8; c++)
+        mn.pat[c] = (uint8_t)((kr() >> 16) % 100u < 60u ? 1u + (kr() >> 16) % 9u : 0u);
+}
+static void mn_groove(uint32_t t, uint32_t step)   /* as SOLITAIRE's, from mn: a slow chord, a bass, keys, the kit */
+{
+    uint32_t bar = step / 16u, p = step % 16u;
+    int i;
+    if (p == 0u && bar % 2u == 0u) {
+        h_deg_at(bar / 2u);
+        for (i = 1; i <= 4; i++)
+            k_on(t + (uint32_t)(i - 1) * 900u, h_note(i), 36, SS_PAD, 3.6f);
+    }
+    if (p == 0u)
+        k_on(t, h_bass(), 44, SS_BASS, 1.2f);
+    if (mn.keys) {
+        if (!(p & 1u)) {
+            int c = (int)(p / 2u);
+            if (mn.pat[c] && sq_roll(SQ_SOLI))
+                k_on(t, h_tone(mn.pat[c] - 1), 26u + kr() % 16u + (p % 8u == 0u ? 8u : 0u), SS_KEYS, 2.0f);
+        } else if (kr() % 100u < (uint32_t)sq_cfg[SQ_SOLI].chance * (mn.tier >= 5 ? 3u : 1u) / 5u) {
+            uint8_t n = mn.pat[kr() % 8u];
+            if (n)
+                k_on(t, h_tone(n - 1) + 12, 16u + kr() % 12u, SS_KEYS, 1.6f);
+        }
+    }
+    sq_drums(t, p, mn.tier, SS_HAT, SS_KICK, SS_SNARE, 63);
+}
+
 static void chess_sounds(void);
 static void enter(uint32_t m)            /* into a game (or the menu): its sounds, a fresh start */
 {
@@ -853,6 +913,8 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
                                           * change: a note left sounding (or still to come) would play on with the
                                           * next game's sound in its slot, a stray tone (Nick heard it on HOME). The
                                           * reverb's tail carries on, so it doesn't click */
+    if (m == M_MENU && mode != M_MENU)   /* back from a game: the menu's music rolled afresh */
+        menu_roll();
     mode = (uint8_t)m;
     fx_apply();
     juice_reset();
@@ -900,6 +962,7 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
     case M_GOLF: gf_sounds(); gf_new(); break;
     case M_DROP: toy_sounds(SQ_DROP); dp_new(); break;
     case M_BOUNCE: toy_sounds(SQ_BOUNCE); bx_new(); break;
+    case M_POOL: po_sounds(); po_new(); break;
     default: so_sounds(); break;
     }
     groove_reset();
@@ -909,12 +972,13 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
 enum { D_NONE, D_LEFT, D_RIGHT, D_UP, D_DOWN, D_SEL };
 static int key_dir(uint32_t k)
 {
-    switch ((53u + k) % 12u) {
-    case 0: return D_LEFT;
-    case 4: return D_RIGHT;
-    case 1: return D_UP;
-    case 2: return D_DOWN;
-    case 9: return D_SEL;
+    if (k == PAD_S0)                     /* F5: select (arcade.h's PAD_*: a controller's layout) */
+        return D_SEL;
+    switch (k) {
+    case PAD_L: return D_LEFT;
+    case PAD_R: return D_RIGHT;
+    case PAD_U: return D_UP;
+    case PAD_D: return D_DOWN;
     default: return D_NONE;
     }
 }
@@ -993,6 +1057,7 @@ static void act(int d)                   /* a direction or a select, to the game
     case M_GOLF: gf_nav(dx, dy, sel); break;
     case M_DROP: dp_nav(dx, dy, sel); break;
     case M_BOUNCE: bx_nav(dx, dy, sel); break;
+    case M_POOL: po_nav(dx, dy, sel); break;
     default: break;
     }
 }
@@ -1000,7 +1065,7 @@ static int repeats(int d)
 {
     return d != D_SEL && !(mode == M_CUBE && d == D_UP) && mode != M_2048 && mode != M_SNAKE && !arcade_game(mode) &&
            mode != M_PINBALL && mode != M_GOLF &&
-           mode != M_DROP && mode != M_BOUNCE;   /* (a move a press: a
+           mode != M_DROP && mode != M_BOUNCE && mode != M_POOL;   /* (a move a press: a
                                                                      * handshake's and a stroke's are the game) */
 }
 
@@ -1086,7 +1151,7 @@ static void input(void)
         game_new();
         app_say(st.vs == 2 ? "TWO PLAYERS" : st.vs ? "YOU VS CPU" : "CPU VS CPU", st.vs == 1 ? "YOU ARE WHITE" : "");
         if (st.vs)
-            tcpy(comment, "C left, E right, C# up, D down, A select.");
+            tcpy(comment, "The lowest keys are the pad: F left, F sharp up, G down, A right. The top keys select.");
     }
     if (pressed >> B_OCTDN & 1u && st.vs && you.from >= 0)   /* let the piece go */
         you.from = -1;
@@ -1141,6 +1206,8 @@ static void input(void)
                     sq_cfg[g].bpm = (uint8_t)clamp((int32_t)sq_cfg[g].bpm + e, 40, 180);
                     if (g == SQ_SOLI)
                         so_room();
+                    if (g == SQ_BRICK)   /* (its echo follows the tempo) */
+                        br_room();
                     knob_say("TEMPO", sq_cfg[g].bpm, " BPM");
                 }
             }
@@ -1214,12 +1281,9 @@ static void input(void)
         uint32_t lit = 0, i;
         if (mode == M_DROP || mode == M_DICE)   /* NOTE DROP, DICE SYNTH: every key plays, so every key is lit */
             lit = (1u << NKEYS) - 1u;
-        else if (mode != M_CHESS || your_turn()) {   /* the keys this game uses now, lit, in every octave */
-            uint32_t pcs = play_pcs();
-            for (i = 0; i < NKEYS; i++)
-                if (pcs >> ((53u + i) % 12u) & 1u)
-                    lit |= 1u << i;
-        }
+        else if (mode != M_CHESS || your_turn())   /* the keys this game uses now, lit */
+            lit = pk_keys(play_pcs());
+        (void)i;
         if (mode != M_CHESS)
             plat_leds(mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
                       btn, lit | keys);
@@ -1485,7 +1549,7 @@ static void chess_scene(void)
         text_c(BX + 4 * SQS, BY + 102, &FONT_T, st.vs ? "HOME: MENU" : "A NEW GAME IN A MOMENT", C_GHOST);
     }
     if (your_turn()) {                   /* what the keys do now */
-        cv_text(6, 222, &FONT_XS, you.from >= 0 ? "WHERE TO? MOVE, THEN A" : "YOUR MOVE: C E C# D MOVE, A PICKS",
+        cv_text(6, 222, &FONT_XS, you.from >= 0 ? "WHERE TO? MOVE, THEN TOP KEY" : "YOUR MOVE: PAD MOVES, TOP KEY PICKS",
                 C_CYAN);
     } else
         cv_text(6, 222, &FONT_XS, comment, st.over ? C_YEL : C_INK);
@@ -1584,18 +1648,15 @@ static void menu_icon(uint32_t m, int32_t x, int32_t y, int on)
         cv_rect(x + 10, y + 27, 16, 3, a);
         break;
     }
-    case M_SWARM: {                      /* SWARM: your rocket, big, its flame lit when picked */
-        int32_t cx = x + 18, top = y - 2, fl = on ? 4 + (int32_t)((ms / 60u) % 3u) * 2 : 0;
-        uint16_t hull = on ? C_CYAN : C_GHOST, nose = on ? C_INK : C_GHOST;
-        if (on) {                        /* the flame */
-            cv_rect(cx - 4, top + 26, 9, fl, (ms / 50u) & 1u ? C_YEL : RGB(255, 150, 60));
-            cv_rect(cx - 2, top + 26, 5, fl - 2, C_INK);
+    case M_SWARM: {                      /* SWARM: three of its creatures clustered, each wiggling on its own beat */
+        static const uint8_t KK[3] = {0, 3, 2};             /* a jellyfish, an eye, a star */
+        static const int8_t OX[3] = {1, 19, 10}, OY[3] = {1, 3, 17};
+        int k;
+        for (k = 0; k < 3; k++) {
+            uint16_t map[2] = {on ? SW_KLIGHT[KK[k]] : C_GHOST, on ? RGB(20, 16, 40) : RGB(18, 13, 32)};
+            uint32_t f = on ? (ms / (220u + 80u * (uint32_t)k)) & 1u : 0u;
+            sprite(x + OX[k], y + OY[k], SW_BUG[KK[k]][f], 6, 2, map);
         }
-        cv_rect(cx - 2, top, 5, 12, nose);                    /* the nose */
-        cv_rect(cx - 8, top + 12, 17, 12, hull);              /* the body */
-        cv_rect(cx - 14, top + 20, 6, 8, hull);               /* the fins */
-        cv_rect(cx + 9, top + 20, 6, 8, hull);
-        cv_rect(cx - 4, top + 14, 4, 4, on ? C_BG : RGB(30, 22, 52));   /* its window */
         break;
     }
     case M_DRIFT: {                      /* DRIFT: just the ship, nose up and right, its flame lit when picked */
@@ -1655,6 +1716,21 @@ static void menu_icon(uint32_t m, int32_t x, int32_t y, int on)
         disc(bxp, byp, 3, on ? C_YEL : C_GHOST);
         break;
     }
+    case M_POOL: {                       /* POOL: the cloth, a pocket, three balls racked, the cue ball rolling in */
+        int32_t q = on ? (int32_t)((ms / 30u) % 60u) : 0, cx = x + 30 - (q < 30 ? q * 16 / 30 : 16);
+        static const int8_t RK[3][2] = {{10, 16}, {6, 12}, {6, 20}};
+        static const uint16_t RC[3] = {RGB(255, 210, 63), RGB(255, 70, 80), RGB(90, 140, 255)};
+        int k;
+        cv_rect(x + 2, y + 4, 32, 24, on ? RGB(16, 104, 96) : C_LINE2);
+        frame_rect(x + 1, y + 3, 34, 26, on ? RGB(150, 90, 50) : C_GHOST);
+        disc(x + 3, y + 5, 3, on ? RGB(6, 6, 10) : C_BG);
+        for (k = 0; k < 3; k++) {
+            int32_t kx = x + RK[k][0] - (on && q >= 30 && k == 0 ? (q - 30) / 6 : 0);
+            disc(kx, y + RK[k][1], 3, on ? RC[k] : C_GHOST);
+        }
+        disc(cx, y + 16, 3, on ? RGB(244, 242, 232) : C_GHOST);
+        break;
+    }
     case M_BOUNCE: {                     /* DODGE: the rolling ball in its box of tiles, a ball bouncing past it */
         int32_t k, t = (int32_t)(ms / 25u), px = t % 48, py = t % 36;
         px = px < 24 ? px : 48 - px;
@@ -1665,11 +1741,11 @@ static void menu_icon(uint32_t m, int32_t x, int32_t y, int on)
         }
         cv_rect(x + 2, y + 5, 2, 22, on ? deg_col(5) : C_LINE2);
         cv_rect(x + 32, y + 5, 2, 22, on ? deg_col(6) : C_LINE2);
-        {                                /* the rolling ball, its stripe going round */
-            float rl = on ? (float)ms * 0.006f : 0.0f;
-            disc(x + 18, y + 16, 8, on ? C_CYAN : C_GHOST);
-            cv_rect(x + 18 + (int32_t)(fm_sinf(rl) * 5.0f) - 1, y + 9, 3, 15, on ? C_PINK : C_LINE2);
-            disc(x + 15, y + 13, 2, on ? C_INK : C_LINE2);
+        if (on)                          /* the marble, rolling */
+            bx_marble(x + 18, y + 16, 8, (float)ms * 0.004f, 1.0f, 0.0f, 0, 0);
+        else {
+            disc(x + 18, y + 16, 8, C_GHOST);
+            disc(x + 15, y + 13, 2, C_LINE2);
         }
         if (on)
             disc(x + 7 + px, y + 7 + py, 2, C_PINK);
@@ -1749,6 +1825,7 @@ static void scene(void)
     case M_GOLF: gf_scene(); break;
     case M_DROP: dp_scene(); break;
     case M_BOUNCE: bx_scene(); break;
+    case M_POOL: po_scene(); break;
     default: menu_scene(); break;
     }
     turns_scene();
@@ -1825,6 +1902,7 @@ void app_frame(void)
     case M_GOLF: gf_tick(); break;
     case M_DROP: dp_tick(); break;
     case M_BOUNCE: bx_tick(); break;
+    case M_POOL: po_tick(); break;
     default: break;
     }
     turns_tick();
@@ -1954,6 +2032,64 @@ int app_expect(const char *what, int *got)
         gf.hole = (uint8_t)((gf.hole + 1u) % 9u);
         gf_start_hole();
         *got = gf.hole;
+    }
+    else if (!strcmp(what, "eng_held"))  /* (GPT's review, 18 Nov 2026: a note let go while it waited for a voice) */
+        *got = (int32_t)eng_held(-1);
+    else if (!strncmp(what, "held_key_", 9))   /* held_key_K: voices still held on DICE SYNTH's key K's note */
+        *got = (int32_t)eng_held(53 + atoi(what + 9) + 12 * dcs.octave);
+    else if (!strcmp(what, "ch_many")) {   /* (a test: ten white queens, more moves than a list holds; capped, no crash) */
+        static const uint8_t QS[10] = {0x33, 0x34, 0x43, 0x44, 0x22, 0x25, 0x52, 0x55, 0x11, 0x66};
+        cpos_t p;
+        cmove_t m[C_MAXMOVES];
+        int k;
+        for (k = 0; k < 128; k++)
+            p.b[k] = 0;
+        p.side = 1, p.castle = 0, p.ep = -1, p.half = 0, p.ply = 0;
+        p.b[0x00] = KING, p.kpos[0] = 0x00;
+        p.b[0x77] = -KING, p.kpos[1] = 0x77;
+        for (k = 0; k < 10; k++)
+            p.b[QS[k]] = QUEEN;
+        *got = c_legal(&p, m);
+    } else if (!strcmp(what, "h_bad")) {   /* (a test: every chord's voices 1 .. 12 in range, each above the last) */
+        uint8_t d0 = h_deg;
+        int d, k, last;
+        *got = 0;
+        for (d = 0; d < 7; d++) {
+            h_deg = (uint8_t)d;
+            for (k = 1, last = 0; k <= 12; k++) {
+                int n = h_note(k);
+                if (n < 24 || n > 120 || n < last)
+                    (*got)++;
+                last = n;
+            }
+        }
+        h_deg = d0;
+    } else if (!strcmp(what, "mn_ok"))   /* (the menu's own music: a tier the kit has) */
+        *got = mn.tier <= 5u;
+    else if (!strcmp(what, "po_left"))
+        *got = po.left;
+    else if (!strcmp(what, "po_shots"))
+        *got = po.shots;
+    else if (!strcmp(what, "po_phase"))
+        *got = po.phase;
+    else if (!strcmp(what, "po_rack"))
+        *got = po.rackn;
+    else if (!strcmp(what, "po_filled")) {   /* the rack's slots with a ball in */
+        int k;
+        *got = 0;
+        for (k = 0; k < PO_SLOTS; k++)
+            *got += po.slot[k] != 0;
+    } else if (!strcmp(what, "po_aim1")) {   /* (a test: the cue aimed dead at the 1) */
+        po.aim = gf_atan2(po.y[1] - po.y[0], po.x[1] - po.x[0]);
+        *got = 1;
+    } else if (!strcmp(what, "po_clear")) {  /* (a test: every ball but the 1 gone, the 1 by a pocket) */
+        int k;
+        for (k = 2; k < PO_NB; k++)
+            po.on[k] = 0;
+        po.left = 1;
+        po.x[1] = 40.0f, po.y[1] = 70.0f, po.x[0] = 80.0f, po.y[0] = 110.0f;
+        po.aim = gf_atan2(po.y[1] - po.y[0], po.x[1] - po.x[0]);
+        *got = 1;
     }
     else if (!strcmp(what, "gf_hole"))
         *got = gf.hole;

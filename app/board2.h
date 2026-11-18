@@ -436,9 +436,9 @@ static void ck_scene(void)
         frame_rect(30, 92, 160, 50, C_YEL);
         text_c(110, 96, &FONT_M, ck.winner == 0 ? "A DRAW" : players == 1 ? (ck.winner > 0 ? "YOU WIN" : "I WIN")
                                                  : ck.winner > 0 ? "P1 WINS" : "P2 WINS", C_YEL);
-        text_c(110, 124, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(110, 124, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
-    text_c(120, 224, &FONT_T, ck.sel >= 0 ? "WHERE TO? MOVE, THEN A" : "PICK A PIECE: MOVE, THEN A", C_GHOST);
+    text_c(120, 224, &FONT_T, ck.sel >= 0 ? "WHERE TO? MOVE, THEN TOP KEY" : "PICK A PIECE: MOVE, THEN TOP KEY", C_GHOST);
 }
 
 /* ========================================================== FOUR IN A ROW === */
@@ -745,7 +745,7 @@ static void f_scene(void)
         frame_rect(40, 100, 160, 44, C_YEL);
         text_c(120, 102, &FONT_M, fr.winner == 0 ? "A DRAW" : players == 1 ? (fr.winner > 0 ? "YOU WIN" : "I WIN")
                                                  : fr.winner > 0 ? "P1 WINS" : "P2 WINS", C_YEL);
-        text_c(120, 128, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(120, 128, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
     {                                    /* the playhead's column, lit as it sounds */
         int c2;

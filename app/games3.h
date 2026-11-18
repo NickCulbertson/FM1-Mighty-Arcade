@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Nick Culbertson */
-/* games3.h: LIGHTS for Mighty Arcade's menu (SUDOKU and SEA BATTLE were cut, 17 Nov 2026). Included once from app.c, after its
+/* games3.h: DARK (was LIGHTS: Nick, 17 Nov 2026) for Mighty Arcade's menu (SUDOKU and SEA BATTLE were cut, 17 Nov 2026). Included once from app.c, after its
  * helpers. Their state lives in the shared arena (g_arena), one game at a time.
  *
- *  LIGHTS      press a light: it and its neighbours flip. Turn them all off. The grid is a step sequencer: a playhead
+ *  DARK        press a light: it and its neighbours flip. Turn them all off. The grid is a step sequencer: a playhead
  *              sweeps the columns and the lights still on sound, so the puzzle is quieting a melody down to silence
  */
 
@@ -105,7 +105,7 @@ static void li_sounds(void)
     k_slot_set(NL_WIN, &KSND[S_TUBE]);
     k_slot_set(NL_PAD, &KSND[S_GLASSPAD]);
     k_slot_rel(NL_SEQ, 1.4f);
-    k_main.rev_mix = 0.5f, k_main.rev_secs = 8.0f, k_main.shimmer = 0.12f;   /* a big room, the keys hanging in it */
+    k_main.rev_mix = 0.5f, k_main.rev_secs = 8.0f, k_main.shimmer = 0.04f;   /* a big room, the keys hanging in it */
     k_main.dly_mix = 0.25f, k_main.dly_fb = 0.45f;
     k_slot_rel(NL_WIN, 1.2f);
     k_slot_rel(NL_PAD, 1.4f);
@@ -122,7 +122,7 @@ static void li_scene(void)
     tcat(t, "  MOVES ");
     itos(li.moves, n);
     tcat(t, n);
-    header("LIGHTS", C_CYAN, "", C_CYAN, t);
+    header("DARK", C_CYAN, "", C_CYAN, t);
     for (i = 0; i < 25; i++) {
         int32_t x = 22 + (i % 5) * 40, y = 26 + (i / 5) * 40;
         uint32_t ft = li.flash_t[i];
@@ -140,8 +140,8 @@ static void li_scene(void)
     } else {
         cv_rect(40, 96, 160, 50, C_BG);
         frame_rect(40, 96, 160, 50, C_YEL);
-        text_c(120, 100, &FONT_M, "LIGHTS OUT!", C_YEL);
-        text_c(120, 128, &FONT_T, "A: NEXT LEVEL", C_GHOST);
+        text_c(120, 100, &FONT_M, "ALL DARK!", C_YEL);
+        text_c(120, 128, &FONT_T, "TOP KEY: NEXT LEVEL", C_GHOST);
     }
-    text_c(120, 228, &FONT_T, "A FLIPS A LIGHT AND ITS NEIGHBOURS", C_GHOST);
+    text_c(120, 228, &FONT_T, "TOP KEY FLIPS A LIGHT AND NEIGHBOURS", C_GHOST);
 }

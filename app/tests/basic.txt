@@ -2,7 +2,7 @@
 wait 500
 # CHESS from the menu, then CPU VS CPU (the default is you against it)
 expect menu_to_CHESS 1
-tapkey 16
+tapkey 24
 expect mode_is_CHESS 1
 tap SEL
 spin ALGO 2

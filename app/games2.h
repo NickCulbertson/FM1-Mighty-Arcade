@@ -313,7 +313,7 @@ static void sn_scene(void)
         tcpy(bs, "BEST ");
         tcat(bs, bn);
         text_c(120, 120, &FONT_XS, bs, C_CYAN);
-        text_c(120, 136, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(120, 136, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
 }
 
@@ -673,10 +673,10 @@ static void mi_scene(void)
                 tcat(ts, "S");
                 text_c(120, 116, &FONT_T, ts, C_CYAN);
             }
-            text_c(120, 128, &FONT_T, mi.won ? "A: NEXT FIELD   HOME: MENU" : "A: AGAIN   HOME: MENU", C_GHOST);
+            text_c(120, 128, &FONT_T, mi.won ? "TOP KEY: NEXT FIELD   HOME: MENU" : "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
         }
     } else if (!mi.over)
-        text_c(120, 202, &FONT_T, "A OPENS    HOLD A: FLAG", C_GHOST);
+        text_c(120, 202, &FONT_T, "TOP KEY OPENS    HOLD IT: FLAG", C_GHOST);
     {                                    /* the playhead's column, lit as it sounds */
         int c;
         for (c = 0; c < MI_W; c++)
@@ -990,6 +990,6 @@ static void tw_scene(void)
         tcpy(bs, "BEST ");
         tcat(bs, bn);
         text_c(120, 128, &FONT_XS, bs, C_CYAN);
-        text_c(120, 146, &FONT_T, "A: AGAIN   HOME: MENU", C_GHOST);
+        text_c(120, 146, &FONT_T, "TOP KEY: AGAIN   HOME: MENU", C_GHOST);
     }
 }

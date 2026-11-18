@@ -2,18 +2,18 @@
 # the way now: no straight line to any cup); a putt; on to hole 2
 wait 600
 expect menu_to_GOLF 1
-tapkey 16
+tapkey 24
 expect mode_is_GOLF 1
 expect gf_phase 6
 shot golf_courses.png
 wait 400
-tapkey 16
+tapkey 24
 wait 2100
 expect gf_strokes 0
 expect gf_phase 0
-key 16 down
+key 24 down
 wait 422
-key 16 up
+key 24 up
 wait 200
 expect gf_phase 1
 shot golf0.png

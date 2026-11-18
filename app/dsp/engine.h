@@ -78,6 +78,7 @@ void eng_cpu2(int (*run)(void (*)(uint32_t), uint32_t), int (*wait)(void));
  * that feeds back was cleared) */
 int eng_out(float *l, float *r, int32_t *lr, uint32_t n, float gain);
 uint32_t eng_active(void);               /* voices sounding */
+uint32_t eng_held(int32_t note);         /* (kit) voices a key still holds (note < 0: any; the tests) */
 int32_t eng_sounding(int32_t note);      /* a voice plays it (not releasing) */
 int32_t eng_room(void);                  /* a new note takes a free voice or a releasing one (none steals a held one) */
 void eng_shed(void);                     /* the render ran late: a voice out, and one fewer for new notes */

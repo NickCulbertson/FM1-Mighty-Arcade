@@ -2,271 +2,271 @@
 # the ball goes up the lane into the table; flip both flippers a while (it scores); the ball save brings one back
 wait 600
 expect menu_to_PINBALL 1
-tapkey 16
+tapkey 24
 expect mode_is_PINBALL 1
 wait 500
 expect pb_score 0
 expect pb_balls 3
 shot pinball0.png
-key 16 down
+key 24 down
 wait 900
-key 16 up
+key 24 up
 wait 700
 shot pinball1.png
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 16 down
+key 24 down
 wait 900
-key 16 up
-key 7 down
-key 11 down
+key 24 up
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 16 down
+key 24 down
 wait 900
-key 16 up
-key 7 down
-key 11 down
+key 24 up
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 16 down
+key 24 down
 wait 900
-key 16 up
-key 7 down
-key 11 down
+key 24 up
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 16 down
+key 24 down
 wait 900
-key 16 up
-key 7 down
-key 11 down
+key 24 up
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 7 down
-key 11 down
+key 0 down
+key 4 down
 wait 120
-key 7 up
-key 11 up
+key 0 up
+key 4 up
 wait 380
-key 16 down
+key 24 down
 wait 900
-key 16 up
+key 24 up
 expect pb_score >1000
 shot pinball2.png

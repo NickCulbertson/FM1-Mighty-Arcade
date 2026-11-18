@@ -14,7 +14,7 @@ or two players; the board is the score. A playhead sweeps the files a to h,
  the music thins out: the game's arc is the piece's.
 
    PLAY   pause / play on                 HOME   a new game
- SEL    YOU VS CPU: you play white. Keys, in any octave: C left, E right, C# up, D down, A select (a piece,
+ SEL    YOU VS CPU: you play white. Keys: the pad at the bottom end (F3 left, A3 right, F#3 up, G3 down), select on F5, at the top (a piece,
         then where to; its moves are dotted; A on it again, or OCT-, lets go). The music goes on as you think
    K1 TEMPO   K2 DENSITY   K3 MOVE (every 1, 2 or 4 bars)   K4 BLUNDER (how often a player plays any old move)
    PRESET the scale   ALGO how deep they think (1..4)   keys: play along in the scale
@@ -29,7 +29,7 @@ instrument.
 Under the games, playing well grows a soft haze of held chord tones (no fixed run up and down the
 chord); big moments get a sting.
 
-The sequencer games (SOLITAIRE, CUBE DROP, 2048, SAND WORM, 4 IN A ROW, MINES, BRICK BREAK, STAR SWARM, ROCK DRIFT): what you build on
+The sequencer games (SOLITAIRE, CUBE DROP, 2048, SAND WORM, 4 IN A ROW, MINES, BRICK BREAK, STAR SWARM, ROCK DRIFT, POOL): what you build on
 the board is the sequence. A playhead plays it on the beat, a column an eighth note, and the further you get, the
 more of the drums come in (hi-hats, kick, snare, the full kit, double time). Their knobs, each game its own: K1
 TEMPO, K2 CHANCE (how many of the playhead's notes sound), K3 SOUND, K4 EFFECTS, PRESET the scale, ALGORITHM the key
@@ -38,19 +38,19 @@ TEMPO, K2 CHANCE (how many of the playhead's notes sound), K3 SOUND, K4 EFFECTS,
 The menu, two pages of nine (right off the grid's edge for the second), grouped (17 Nov 2026):
 
     page 1, the favourites          page 2
-    BOUNCE  SWARM    DRIFT          GOLF    DROP        DODGE
-    CHESS   PINBALL  SOLITAIRE      LIGHTS  DICE SYNTH  CHECKERS
-    WORM    CUBES    DEFUSE         ROWS    2048
+    BOUNCE  SWARM       DRIFT          GOLF    PINBALL  DODGE
+    CHESS   DICE SYNTH  SOLITAIRE      DARK    DROP     POOL
+    WORM    CUBES       DEFUSE         ROWS    2048     CHECKERS
 
 Short names (17 Nov 2026): DROP was NOTE DROP, BOUNCE was BRICK BREAK, SWARM was STAR SWARM, DRIFT was ROCK DRIFT,
-WORM was SAND WORM, CUBES was CUBE DROP, PINBALL was BUMPIN BALL, GOLF was MINI GOLF, ROWS was 4 IN A ROW.
+WORM was SAND WORM, CUBES was CUBE DROP, PINBALL was BUMPIN BALL, GOLF was MINI GOLF, ROWS was 4 IN A ROW, DARK was LIGHTS.
 
-The cursor starts on PINBALL, in the middle. In the menu, PRESET picks the scale and ALGORITHM the key for every game (its name is in the
+The cursor starts on DICE SYNTH, in the middle. In the menu, PRESET picks the scale and ALGORITHM the key for every game (its name is in the
 bottom corner; the new chord sounds as you turn). The tests find games by name (`expect menu_to_CUBE_DROP 1`,
 `expect mode_is_CUBE_DROP 1`), so the order can change without them.
 
 A menu of nine a page (HOME comes back to it), and a PLAYERS switch above it: 1 (against the computer, or alone) or 2 (taking
-turns). The same five keys drive them all, in any octave: C left, E right, C# up, D down, A select (in the browser:
+turns). The same keys drive them all, held like a game controller: the pad under the left hand at the keyboard's bottom end (F3 left, F#3 up, G3 down, A3 right) and select under the right hand on F5, at its top end (the TOP KEY in the games' hints) (in the browser:
 the arrow keys and Enter or Space). A held direction repeats. Each game makes its own music from what you do.
 
 - **CHESS**: you (white) against the computer, or two players. ALGORITHM sets the difficulty: EASY, MEDIUM, HARD,
@@ -88,7 +88,7 @@ the arrow keys and Enter or Space). A held direction repeats. Each game makes it
 
 SUDOKU and SEA BATTLE were cut, 17 Nov 2026.
 
-- **LIGHTS** (one player): A flips a light and its neighbours; turn them all off. Its music is ambient: a slow
+- **DARK** (was LIGHTS; one player): A flips a light and its neighbours; turn them all off. Its music is ambient: a slow
   chord every two bars in a big room, and the lights still on sound now and then, soft and long, so solving it
   quiets the music down to the chord alone.
 - **BRICK BREAK**, **STAR SWARM**, **ROCK DRIFT**: held keys (left, right, up, down), A to launch or
@@ -103,7 +103,7 @@ SUDOKU and SEA BATTLE were cut, 17 Nov 2026.
   the upper sky, never in step, each kind flying and firing its own way, its shots on the beat: scouts weave and fire
   straight down, gunships lumber and fire a spread, interceptors sweep and fire at you, orbiters circle and drop
   wandering mines, sentinels step on the beat and fire bursts. You fly a rocket in the lower sky (left, right, a
-  little forward and back). Every droid you hit is caught in the jar, eight slots across the top that loop as a bar
+  little forward and back). Every droid you hit is caught in the jar, in a random one of eight slots across the top that loop as a bar
   of eighths, each playing its note, so the tune is what you shot. Three hits on you and it's the end. Clear the wall, or thin the swarm, and the drums come
   in. Their knobs, as SOLITAIRE's (each game keeps its own): K1 TEMPO, K2 CHANCE, K3 SOUND, K4 EFFECTS, PRESET the
   scale, ALGORITHM the key.
@@ -115,9 +115,20 @@ SUDOKU and SEA BATTLE were cut, 17 Nov 2026.
   next: the shots, the jars (MULTIBALL), the chest (JACKPOT), the top lights and the targets (the multiplier).
 - **GOLF** (one player): three courses of nine, chosen from a quick list when it opens: THE GARDEN, THE CANYON
   (a desert at dusk) and THE CASTLE (its halls by torchlight). The greens curve, rounded at the corners and bowed along the sides; the
-  walls inside are arcs; sand and water lie in soft blobs. No hole has a straight line from the tee to the cup:
-  a bumper, a wall, water or the mill is always in the way. The windmill has two blades; the sliding wall is four
+  walls inside are arcs; sand and water lie in soft blobs. No hole has a straight line from the tee to the cup,
+  and it's the course that sees to it, not a bumper dropped in front of the tee: the green turns a corner, a wall or a
+  ledge stands across it, water lies between, or the mill or the sliding wall is in the way (Nick, 18 Nov 2026).
+  Only the bumper fields (BUMPER ALLEY, TUMBLEWEEDS) put their bumpers across the line, all over the green. The windmill has two blades; the sliding wall is four
   blocks wide.
+- **POOL** (one player): nine balls racked in a diamond. Left and right aim (held: faster), up and down finely; hold the top key, the
+  power pulses, let go to shoot. A dotted line and a ghost ball show what the cue ball meets first. No fouls: clear
+  the table in as few shots as you can. Every knock is a note on the next sixteenth (ball on ball a chord tone, a
+  cushion a wood knock). The six pockets are six notes of the chord, ringed in their colours, low at your end and
+  high at the far one: each ball sunk drops into a random slot of the RACK (emptied when the table's cleared), eight slots under the header that loop as a bar of
+  eighths, so the tune is where you sank them. The emptier the table, the more of the drums; two or more in one shot
+  is a combo; the cue ball down is a scratch (back on its spot). The table cleared: the next rack, a little quicker,
+  the loop playing on.
+
 The music toys (one player): games you play as much as hear, from Nick's CYD MIDI Controller. Every
 collision is a note, always in tune, and lands on the next sixteenth of the groove, so the physics is free and the
 music always in time. The more you light, the more of the drums come in. Knobs: NOTE DROP: K1..K4 tilt its

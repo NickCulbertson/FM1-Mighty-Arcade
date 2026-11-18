@@ -1,0 +1,37 @@
+# POOL: page 2's last tile; the press that starts it doesn't shoot; a full break; balls down fill the rack's loop;
+# then a table down to the 1, sunk: the table cleared, A: the next rack, its loop emptied
+wait 600
+expect menu_to_POOL 1
+shot pool_menu.png
+tapkey 24
+expect mode_is_POOL 1
+expect po_phase 0
+expect po_left 9
+shot pool0.png
+key 24 down
+wait 780
+shot pool_aim.png
+key 24 up
+wait 60
+expect po_phase 1
+expect po_shots 1
+wait 250
+shot pool_break.png
+wait 9000
+expect po_phase 0
+shot pool1.png
+expect po_clear 1
+key 24 down
+wait 500
+key 24 up
+wait 6000
+expect po_left 0
+expect po_phase 2
+shot pool_cleared.png
+wait 1000
+tapkey 24
+wait 300
+expect po_rack 1
+expect po_filled 0
+expect po_left 9
+expect po_phase 0

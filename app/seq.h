@@ -1,24 +1,24 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 Nick Culbertson */
-/* seq.h: what the sequencer games share (SOLITAIRE, BRICK BREAK, STAR SWARM, SNAKE, MINES, 2048, CUBE DROP, 4 IN A ROW, ROCK DRIFT;
+/* seq.h: what the sequencer games share (SOLITAIRE, BRICK BREAK, STAR SWARM, SNAKE, MINES, 2048, CUBE DROP, 4 IN A ROW, ROCK DRIFT, POOL;
  * the toys' K2 is their own): the game's state is the sequence, a
  * playhead plays it on the beat, and the drums come in as you get further. Their knobs, each game its own: K1 TEMPO,
  * K2 CHANCE (how many of the playhead's notes sound), K3 SOUND, K4 EFFECTS (app.c), PRESET the scale, ALGORITHM the
  * key. Included once from app.c, after the modes and the harmony, before the games. */
 
 enum { SQ_SOLI, SQ_BRICK, SQ_SWARM, SQ_DROP, SQ_BOUNCE,   /* (DROP, BOUNCE: toys.h, K2 not CHANCE) */
-       SQ_SNAKE, SQ_MINES, SQ_2048, SQ_CUBE, SQ_FOUR, SQ_DRIFT, SQ_N };   /* (CUBE: its tempo is its level's) */
+       SQ_SNAKE, SQ_MINES, SQ_2048, SQ_CUBE, SQ_FOUR, SQ_DRIFT, SQ_POOL, SQ_N };   /* (CUBE: its tempo is its level's) */
 /* the sounds K3 steps through */
 static const uint8_t SQ_INST[] = {S_DREAM, S_TINES, S_VIBES, S_HARP, S_CRYSTAL, S_CELESTA, S_GLASSPAD, S_NYLON,
-                                  S_KOTO, S_FLUTE, S_MARIMBA, S_CHIP, S_SAWPLUCK, S_SQLEAD, S_SYNCLEAD};
+                                  S_KOTO, S_FLUTE, S_MARIMBA, S_CHIP, S_SAWPLUCK, S_SQLEAD, S_SYNCLEAD, S_SOFTSAW};
 #define SQ_NINST (sizeof SQ_INST / sizeof SQ_INST[0])
 static struct {
     uint8_t bpm, chance, inst;           /* inst: SQ_INST's index */
-} sq_cfg[SQ_N] = {{66, 60, 0}, {104, 75, 11}, {120, 80, 12}, {100, 100, 2}, {92, 100, 4},   /* DREAM EP; CHIP;
+} sq_cfg[SQ_N] = {{66, 60, 0}, {104, 75, 7}, {120, 80, 12}, {100, 100, 2}, {92, 100, 4},   /* DREAM EP; NYLON (Nick, 18 Nov 2026; CHIP before);
                                                                                         * SAW PLUCK; VIBES; CRYSTAL */
                   {92, 90, 11}, {96, 80, 10}, {84, 85, 5}, {100, 70, 2}, {84, 85, 8},   /* CHIP; MARIMBA; CELESTA;
                                                                                         * VIBES; KOTO */
-                  {96, 85, 3}};                                 /* ROCK DRIFT: HARP */
+                  {96, 85, 3}, {96, 85, 2}};                    /* ROCK DRIFT: HARP; POOL: VIBES */
 static uint8_t sq_slot;                  /* the slot the playhead plays on (the game's sounds set it) */
 
 static int sq_game(void)                 /* the sequencer game on screen (-1: another) */
@@ -26,7 +26,7 @@ static int sq_game(void)                 /* the sequencer game on screen (-1: an
     return mode == M_SOLI ? SQ_SOLI : mode == M_BRICK ? SQ_BRICK : mode == M_SWARM ? SQ_SWARM : mode == M_DROP ? SQ_DROP
            : mode == M_BOUNCE ? SQ_BOUNCE : mode == M_SNAKE ? SQ_SNAKE : mode == M_MINES ? SQ_MINES
            : mode == M_2048 ? SQ_2048 : mode == M_CUBE ? SQ_CUBE : mode == M_FOUR ? SQ_FOUR
-           : mode == M_DRIFT ? SQ_DRIFT : -1;
+           : mode == M_DRIFT ? SQ_DRIFT : mode == M_POOL ? SQ_POOL : -1;
 }
 static void sq_sound(int g) { k_slot_set(sq_slot, &KSND[SQ_INST[sq_cfg[g].inst % SQ_NINST]]); }   /* K3 */
 static uint32_t sq_ms(uint32_t t)        /* when a note scheduled for sample t sounds, on plat_ms's clock */
@@ -77,4 +77,20 @@ static void sq_col_glow(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t at,
     g = 256 - (int32_t)(q * 256u / 180u);
     frame_rect(x, y, w, h, mix565(C_BG, c, g));
     cv_rect(x + 2, y - 3, w - 4, 2, mix565(C_BG, c, g));
+}
+
+/* where a new note goes in a game's loop (POOL's rack, SWARM's jar): a random empty slot, or, the loop full, any slot
+ * at random, so the rhythm comes out random (Nick, 17 Nov 2026) */
+static int seq_free_slot(const uint8_t *slot, int n)
+{
+    int k, free = 0, pick;
+    for (k = 0; k < n; k++)
+        free += !slot[k];
+    pick = (int)((kr() >> 16) % (uint32_t)(free ? free : n));
+    for (k = 0; k < n; k++)
+        if (!free || !slot[k]) {
+            if (!pick--)
+                return k;
+        }
+    return 0;
 }

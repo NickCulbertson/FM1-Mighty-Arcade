@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Mighty Arcade's browser page: the arrow keys move the cursor (they press C4 left, E4 right, C#4 up, D4 down) and
-Enter or Space selects (A4), ahead of the page's own use of them. Run after ./build.sh --web (build.sh does)."""
+"""Mighty Arcade's browser page: the arrow keys move the cursor (they press the pad at the keyboard's bottom end: F3 left, A3 right,
+F#3 up, G3 down) and Enter or Space selects (F5, at its top end), ahead of the page's own use of them. Run after ./build.sh --web (build.sh does)."""
 import sys
 p = sys.argv[1]
 s = open(p).read()
@@ -11,7 +11,7 @@ i = s.index(anchor)
 j = s.index("\n", i) + 1
 add = """// QG_ARROWS (Mighty Arcade): the arrows move the cursor, Enter or Space selects; caught first, so a focused button or
 // the SELECT knob never gets them
-const QG_ARROWS = { ArrowLeft: 7, ArrowRight: 11, ArrowUp: 8, ArrowDown: 9, Enter: 16, Space: 16 };
+const QG_ARROWS = { ArrowLeft: 0, ArrowRight: 4, ArrowUp: 1, ArrowDown: 2, Enter: 24, Space: 24 };
 addEventListener("keydown", (e) => {
   const k = QG_ARROWS[e.code];
   if (k === undefined || !node || !shortcuts.checked || e.metaKey || e.ctrlKey || e.altKey) return;
