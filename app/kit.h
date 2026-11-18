@@ -850,8 +850,12 @@ static void k_render(int32_t *lr, uint32_t n, uint32_t master_q12)
     kpn = j;
     eng_voices(k_l, k_r, seg, n);
     eng_out(k_l, k_r, lr, n, gain);
-    for (i = 0, j = scope_w; i < n; i++, j++) {
+    for (i = 0, j = scope_w; i < n; i++, j++) {   /* (the scope and the level as if MASTER were full: the output
+                                                    * scaled back up by it, so a quiet MASTER on headphones doesn't
+                                                    * flatten DICE SYNTH's scope, 18 Nov 2026) */
         int32_t v = (lr[2 * i] + lr[2 * i + 1]) >> 9;
+        if (master_q12 > 0u && master_q12 < 4096u)
+            v = (int32_t)((int64_t)v * 4096 / (int32_t)master_q12);
         float a = (float)(v < 0 ? -v : v) * (1.0f / 32768.0f);
         scope[j & (SCOPE_N - 1u)] = (int16_t)clamp(v, -32767, 32767);
         if (a > pk)
