@@ -18,4 +18,4 @@ description = "Mighty Arcade, from the creator of Mighty Arp: eighteen casual ga
 tags = ["synth"]
 install = ""
 site = ""
-screenshot = ""
+screenshot = "app/docs/img/menu.png"   # for the hubs' cards: square, 240 x 240
