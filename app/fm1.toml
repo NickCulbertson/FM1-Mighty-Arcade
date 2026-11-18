@@ -1,4 +1,4 @@
-# Mighty Arcade: a prototype on fm1-base (tools/build.py), from Mighty Arp's stack
+# Mighty Arcade on fm1-base (tools/build.py), from Mighty Arp's stack
 name = "MightyArcade"
 id_prefix = "FM-1_6281"
 usb_manufacturer = "Nick Culbertson"

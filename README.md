@@ -1,11 +1,11 @@
-# Mighty Arcade (FM-1 prototype)
+# Mighty Arcade
 
-A proof-of-concept firmware for the M-VAVE FM-1 on fm1-base, the same stack as Mighty Arp (`base/` is a link to
-Mighty Arp's fm1-base checkout; the FM engine in `app/dsp/` is a copy of Mighty Arp's, with `eng_note_on_with` added
-so several sounds can play at once). `app/kit.h` is shared by the three prototypes.
+A firmware for the M-VAVE FM-1: eighteen casual games that make music as you play. It's built on fm1-base, the same
+stack as Mighty Arp (`base/` is fm1-base, as a git submodule; the FM engine in `app/dsp/` is a copy of Mighty Arp's,
+with `eng_note_on_with` added so several sounds can play at once).
 
 ```
-MIGHTY ARCADE (prototype): a box of casual games that make music. CHESS: two engines, or you against one,
+MIGHTY ARCADE: a box of casual games that make music. CHESS: two engines, or you against one,
 or two players; the board is the score. A playhead sweeps the files a to h,
  an eighth note each, a bar a sweep; each piece it passes may sound (DENSITY), its pitch from its rank, its voice from
  what it is: pawns plucked, knights a marimba, bishops a celesta, rooks a low electric piano, queens a glass pad, the
@@ -162,7 +162,6 @@ then the scores side by side).
 ./build.sh --web      # the browser emulator: app/build/emu/ (serve it over http)
 ```
 
-Not tested on a real FM-1 yet.
 
 ## Licence
 
