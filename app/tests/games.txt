@@ -39,18 +39,18 @@ shot cube0.png
 # move, turn, drop, many times
 tapkey 0
 tapkey 1
-tapkey 24
+tapkey 26
 wait 200
 tapkey 4
 tapkey 4
 tapkey 4
-tapkey 24
+tapkey 26
 wait 200
 tapkey 0
 tapkey 0
 tapkey 0
 tapkey 0
-tapkey 24
+tapkey 26
 wait 200
 tapkey 2
 tapkey 2
@@ -62,7 +62,7 @@ expect cu_score >10
 key 4 down
 wait 600
 key 4 up
-tapkey 24
+tapkey 26
 wait 30000
 shot cube2.png
 wait 30000
@@ -75,6 +75,6 @@ tap HOME
 expect menu_to_CHESS 1
 tapkey 24
 expect mode_is_CHESS 1
-spin ALGO 2
+spin SELECT 2
 expect depth 3
 shot hard.png

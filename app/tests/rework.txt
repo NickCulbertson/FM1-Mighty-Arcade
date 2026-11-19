@@ -1,0 +1,58 @@
+# the four reworked (Nick, 19 Nov 2026): PINBALL's boss, SWARM's dives and power-ups, DARK's par, POOL's par
+wait 600
+expect menu_to_PINBALL 1
+tapkey 24
+expect mode_is_PINBALL 1
+expect pb_boss 8
+expect pb_boss_hit 0
+expect pb_boss 7
+expect pb_cam_boss 0
+wait 60
+shot pb_boss.png
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_hit 0
+expect pb_boss_lv 1
+expect pb_boss 12
+wait 300
+shot pb_boss_down.png
+tap HOME
+expect menu_to_SWARM 1
+tapkey 24
+expect mode_is_SWARM 1
+expect sw_god 1
+wait 9000
+expect sw_dives >0
+shot sw_dive.png
+expect sw_power 0
+wait 200
+expect sw_pow 1
+shot sw_power.png
+tap HOME
+expect menu_to_DARK 1
+tapkey 24
+expect li_par >0
+tapkey 24
+wait 120
+shot dark_flip.png
+tap HOME
+expect menu_to_POOL 1
+tapkey 24
+wait 1500
+shot pool_par.png
+# auto-fire: SWARM, the top key held two seconds fires on the eighths (about eight at 90-odd BPM)
+tap HOME
+expect menu_to_SWARM 1
+tapkey 24
+expect sw_god 1
+wait 1500
+expect af_n 0
+key 24 down
+wait 2000
+key 24 up
+expect af_n >4
+expect af_n <14

@@ -1,0 +1,24 @@
+# DEFUSE: hold to flag, move, hold again: a second flag; then a tap opens (Nick, 19 Nov 2026)
+wait 600
+expect menu_to_DEFUSE 1
+tapkey 24
+expect mode_is_DEFUSE 1
+wait 600
+key 24 down
+wait 600
+key 24 up
+wait 200
+expect mi_flags 1
+tapkey 4
+wait 100
+key 24 down
+wait 600
+key 24 up
+wait 200
+expect mi_flags 2
+tapkey 4
+wait 100
+tapkey 24
+wait 300
+expect mi_flags 2
+expect mi_opened >0

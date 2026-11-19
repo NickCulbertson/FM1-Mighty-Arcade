@@ -10,10 +10,10 @@ expect br_tier 0
 shot brick_seq.png
 expect br_clear20 0
 wait 2500
-expect br_tier 2
+expect br_tier 3
 expect br_clear10 0
 wait 2500
-expect br_tier 4
+expect br_tier 5
 tap HOME
 wait 300
 expect menu_to_SWARM 1

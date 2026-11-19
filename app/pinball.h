@@ -57,11 +57,25 @@ typedef struct {
     uint32_t shot_at, goal_at;
     uint8_t plunging, save_used, armed;  /* save_used: this ball has had its save; armed: A let go since the game
                                           * began (the press that started it doesn't launch) */
+    uint8_t boss_hp, boss_max, boss_lv;  /* THE BOSS (Nick, 19 Nov 2026: one big obvious thing to hit): the lower
+                                          * middle bumper, its hit points; down, and back tougher */
+    uint32_t boss_hit_at, boss_down_at, slow_until;   /* slow_until: slow motion, after a big moment */
+    uint8_t boss_ann;                    /* the next monster announced */
 } pb_t;
+#define PB_BOSS 3                        /* the bumper that is the boss */
+#define PB_BOSS_R 20.0f
+#define PB_BOSS_BACK 4000u               /* down this long, then back */
+/* the bosses, in turn (Nick, 19 Nov 2026: the old monster movies; drawn our own way, not any film's makeup): each
+ * angrier the more it's hit, then its head pops off the table and the next one rises */
+#define PB_NMON 5
+static const char *const PB_MON_NAME[PB_NMON] = {"VAMPIRE", "MUMMY", "WEREWOLF", "MONSTER", "LAGOON THING"};
+
 static uint32_t pb_best;
+static uint8_t pb_cam_lock;              /* (a test: the view doesn't follow the ball) */
 #define pb (*(pb_t *)g_arena)
 _Static_assert(sizeof(pb_t) <= sizeof g_arena, "pb: the arena is too small");
 #define SY(wy) ((int32_t)(wy) - pb.camy)   /* world y to the screen's */
+static int pb_mon(void) { return pb.boss_lv % PB_NMON; }
 
 /* the table (world px): its walls (x1, y1, x2, y2) */
 static const int16_t PB_WALL[][4] = {
@@ -188,6 +202,8 @@ static void pb_new(void)
     pb.save_used = 0;
     pb.armed = 0;
     pb.hero_mood = 0;
+    pb.boss_lv = 0, pb.boss_max = pb.boss_hp = 8, pb.boss_hit_at = pb.boss_down_at = pb.slow_until = 0;
+    pb.boss_ann = 1;
     pb.cam = (float)(PB_H - 240);
     pb.camy = PB_H - 240;
     pb_ball_to_lane(0);
@@ -276,6 +292,52 @@ static void pb_bumper(int i)
     juice_freeze(22);
     juice_heat(5);
 }
+static void pb_multiball(void);
+static int pb_boss_up(void) { return !pb.boss_down_at || plat_ms() - pb.boss_down_at >= PB_BOSS_BACK; }
+static void pb_boss_hit(void)            /* the boss hit: a blow, its chord tone, and down it goes at last */
+{
+    int32_t x = PB_BUMPER[PB_BOSS][0], y = PB_BUMPER[PB_BOSS][1];
+    uint32_t now = plat_ms();
+    pb.boss_hit_at = now | 1u;
+    if (!pb_boss_up())
+        return;
+    if (pb.boss_down_at)                 /* back: full again */
+        pb.boss_down_at = 0, pb.boss_ann = 1;
+    pb.boss_hp--;
+    k_on(0, h_note(1 + pb.boss_hp % 4) + 12, 112, PB_BUMP, 0.5f);
+    k_on(0, h_bass(), 100, PB_BASS, 0.3f);
+    k_on(0, 36, 100, PB_KICK, 0.15f);
+    pb_add(500u * (1u + pb.boss_lv), x, y - 26, C_YEL);
+    juice_burst(x, SY(y), 16, 3, RGB(140, 230, 90), C_INK, 1);
+    juice_ring(x, SY(y), 34, C_INK, 260);
+    juice_shake(5, 200);
+    juice_freeze(40);
+    juice_kick(0, 3);
+    juice_heat(8);
+    if (pb.boss_hp == 0) {               /* down: slow motion, a jackpot, multiball, and it comes back tougher */
+        pb.boss_down_at = now | 1u;
+        pb.slow_until = now + 1600u;
+        {
+            char dn[24];
+            tcpy(dn, PB_MON_NAME[pb_mon()]);
+            tcat(dn, " DOWN!");
+            juice_pop(120, 96, dn, C_YEL);
+        }
+        pb.boss_lv++;
+        pb.boss_ann = 0;
+        pb.boss_max = pb.boss_hp = (uint8_t)(pb.boss_max + 4 > 40 ? 40 : pb.boss_max + 4);
+        pb_add(10000u * pb.boss_lv, x, y - 30, C_YEL);
+        juice_freeze(220);
+        juice_flash(RGB(255, 255, 255), 210, 500);
+        juice_shake(11, 700);
+        juice_confetti(x, SY(y), 60);
+        juice_ring(x, SY(y), 120, C_YEL, 600);
+        juice_sting(2);
+        pb_cheer();
+        if (!pb.multiball)
+            pb_multiball();
+    }
+}
 static void pb_drain(int k)
 {
     pb_ball_t *b = &pb.b[k];
@@ -323,6 +385,7 @@ static void pb_jackpot(void)
     pb.treasure = (uint8_t)(kr() % 10u);
     pb.chest_hits = 0;
     pb_add(5000, PB_CHEST_X + 30, PB_CHEST_Y, C_YEL);
+    pb.slow_until = plat_ms() + 900u;
     juice_pop(120, 120, "JACKPOT!", C_YEL);
     juice_freeze(110);
     juice_flash(RGB(255, 255, 255), 200, 400);
@@ -457,9 +520,15 @@ static void pb_step(pb_ball_t *b, float h)   /* one small step of one ball */
         }
     for (i = 0; i < 3; i++)
         pb_hit_circle(b, PB_POST[i][0], PB_POST[i][1], 5.0f, 0.5f, 0.0f);
-    for (i = 0; i < PB_NBUMP; i++)       /* the bumpers: the creatures */
-        if (pb_hit_circle(b, PB_BUMPER[i][0], PB_BUMPER[i][1], 14.0f, 0.6f, 0.32f) > 0.05f && now - pb.bump_at[i] > 60u)
-            pb_bumper(i);
+    for (i = 0; i < PB_NBUMP; i++)       /* the bumpers: the creatures (and the boss, bigger) */
+        if (pb_hit_circle(b, PB_BUMPER[i][0], PB_BUMPER[i][1], i == PB_BOSS ? PB_BOSS_R : 14.0f, 0.6f, 0.32f) > 0.05f &&
+            now - pb.bump_at[i] > 60u) {
+            if (i == PB_BOSS) {
+                pb.bump_at[i] = now | 1u;
+                pb_boss_hit();
+            } else
+                pb_bumper(i);
+        }
     for (i = 0; i < 4; i++)              /* the drop targets: down when hit */
         if (!pb.drop[i] && pb_hit_seg(b, PB_DROP[i][0], PB_DROP[i][1] - 5, PB_DROP[i][0], PB_DROP[i][1] + 5, 2.0f, 0.4f,
                                       0.05f, 0.0f, 0.0f, 0, 0) > 0.05f) {
@@ -604,12 +673,29 @@ static void pb_tick(void)
     int keys[2], pull;
     if (pb.over)
         return;
+    if ((int32_t)(now - pb.slow_until) < 0)   /* slow motion: a third the speed */
+        dt = (dt + 2u) / 3u;
+    if (pb.boss_down_at && !pb.boss_ann && now - pb.boss_down_at >= PB_BOSS_BACK) {   /* the next monster rises */
+        char nm[24];
+        pb.boss_ann = 1;
+        tcpy(nm, "THE ");
+        tcat(nm, PB_MON_NAME[pb_mon()]);
+        tcat(nm, "!");
+        juice_pop(120, 96, nm, C_PINK);
+        k_on(0, h_bass() - 12, 110, PB_BOOM, 1.0f);   /* a low rumble, and its chord, menacing */
+        k_on(k_at(0.1f), h_note(1), 90, PB_PAD, 1.6f);
+        k_on(k_at(0.1f), h_note(2) + 1, 70, PB_PAD, 1.6f);
+        juice_shake(6, 500);
+    }
     keys[0] = HELD_L;
-    keys[1] = HELD_R;
+    keys[1] = HELD_R || HELD_S1;         /* (the right flipper: A3, or G5 under the right hand, so a flipper
+                                          * each side of the controller: Nick, 19 Nov 2026) */
     for (k = 0; k < 2; k++)              /* a flipper's key: a click, the flipper's sound */
         if (keys[k] && !pb.flip_at[k]) {
             pb.flip_at[k] = now | 1u;
-            k_on(0, k ? 43 : 41, 80, PB_FLIP, 0.08f);
+            k_on(0, k ? scale_fit(h_bass() + 19) : h_bass() + 12, 80, PB_FLIP, 0.08f);   /* its click, on the chord:
+                                          * the left its root, the right its fifth (Nick, 19 Nov 2026: musical) */
+            juice_kick(k ? 1 : -1, 1);   /* (a snap you feel) */
             if (pb.lit[0] + pb.lit[1] + pb.lit[2] < 3) {   /* the flippers shift which lights are lit */
                 uint8_t t = k ? pb.lit[2] : pb.lit[0];
                 if (k)
@@ -646,7 +732,8 @@ static void pb_tick(void)
     for (i = 0; i < n; i++) {
         float h = (float)dt / (float)n;
         for (k = 0; k < 4; k++) {        /* the flippers move */
-            float target = keys[k & 1] ? PB_FL[k][4] : PB_FL[k][3], a0 = pb.ang[k], sp = keys[k & 1] ? 0.028f : 0.014f;
+            float target = keys[k & 1] ? PB_FL[k][4] : PB_FL[k][3], a0 = pb.ang[k], sp = keys[k & 1] ? 0.04f : 0.018f;   /* (snappier:
+                                          * was 0.028 up, 0.014 down) */
             float d = target - a0;
             if (d > sp * h)
                 d = sp * h;
@@ -688,6 +775,8 @@ static void pb_tick(void)
         if (fy < 0.0f)
             fy = (float)PB_OUT_Y;
         target = fm_clampf(fy - 140.0f, 0.0f, (float)(PB_H - 240));
+        if (pb_cam_lock)                 /* (a test: the view held where it was put) */
+            target = pb.cam;
         pb.cam += (target - pb.cam) * (dt >= 30u ? 0.3f : 0.16f);
         pb.camy = (int32_t)(pb.cam + 0.5f);
     }
@@ -783,6 +872,131 @@ static void pb_thick(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t r, 
     for (i = 0; i <= n; i++) {
         int32_t x = x1 + (x2 - x1) * i / (n ? n : 1), y = y1 + (y2 - y1) * i / (n ? n : 1);
         cv_rect(x - r, y - r, 2 * r + 1, 2 * r + 1, c);
+    }
+}
+/* a monster's face, about 40 px across, at x, y (screen). anger 0 calm .. 2 furious: the brows come down, the eyes
+ * go red and glow, the mouth opens, it shakes and steams. hit: a white flash */
+static void pb_monster(int kind, int32_t x, int32_t y, int anger, int hit, uint32_t ms)
+{
+    static const uint16_t SKIN[PB_NMON] = {RGB(222, 214, 236), RGB(212, 196, 150), RGB(104, 96, 92), RGB(140, 168, 124),
+                                           RGB(58, 140, 118)};
+    uint16_t skin = SKIN[kind], dark = RGB(14, 10, 20), eye_c;
+    int32_t ex = 7, ey = y - 3, k, r = 18;
+    if (anger >= 2) {
+        x += (int32_t)((ms / 40u) % 3u) - 1;   /* trembling with rage */
+        skin = mix565(skin, RGB(255, 40, 40), 70);
+        for (k = 0; k < 3; k++) {        /* steam */
+            int32_t sy = y - 24 - (int32_t)((ms / 25u + (uint32_t)k * 13u) % 18u);
+            disc(x - 16 + k * 16, sy, 3 - (int32_t)((ms / 25u + (uint32_t)k * 13u) % 18u) / 7, RGB(180, 170, 190));
+        }
+    }
+    if (hit)
+        skin = C_INK;
+    disc(x + 3, y + 4, r, RGB(4, 2, 10));   /* its shadow */
+    switch (kind) {                      /* what's behind the head */
+    case 0:                              /* the vampire's high collar */
+        disc(x - 17, y + 12, 11, RGB(150, 20, 40));
+        disc(x + 17, y + 12, 11, RGB(150, 20, 40));
+        disc(x - 15, y + 13, 7, dark);
+        disc(x + 15, y + 13, 7, dark);
+        break;
+    case 2:                              /* the werewolf's ears: tall and pointed */
+        for (k = 0; k < 14; k++) {
+            int32_t w = 1 + k * 5 / 7;
+            cv_rect(x - 13 - w, y - 28 + k, 2 * w + 1, 1, RGB(70, 64, 62));
+            cv_rect(x + 13 - w, y - 28 + k, 2 * w + 1, 1, RGB(70, 64, 62));
+            if (k > 5)
+                cv_rect(x - 13 - w / 2, y - 28 + k, w + 1, 1, RGB(170, 110, 110)),
+                cv_rect(x + 13 - w / 2, y - 28 + k, w + 1, 1, RGB(170, 110, 110));
+        }
+        break;
+    case 4:                              /* the lagoon thing's fins */
+        for (k = -1; k <= 1; k += 2) {
+            disc(x + k * 19, y - 2, 9, RGB(40, 110, 96));
+            pb_thick(x + k * 14, y - 8, x + k * 25, y - 4, 0, RGB(110, 200, 170));
+            pb_thick(x + k * 14, y - 2, x + k * 26, y + 2, 0, RGB(110, 200, 170));
+            pb_thick(x + k * 14, y + 4, x + k * 24, y + 8, 0, RGB(110, 200, 170));
+        }
+        break;
+    default:
+        break;
+    }
+    disc(x, y, r, skin);                 /* the head */
+    switch (kind) {                      /* its features */
+    case 0:                              /* slicked hair, a widow's peak */
+        cv_rect(x - 14, y - 17, 28, 5, dark);
+        pb_thick(x - 9, y - 13, x, y - 8, 1, dark);
+        pb_thick(x + 9, y - 13, x, y - 8, 1, dark);
+        break;
+    case 1:                              /* bandages, one eye peeking */
+        for (k = -14; k <= 14; k += 6) {
+            int32_t w = 2 * (int32_t)fm_sqrtf((float)(r * r - k * k));
+            if (k == -2)
+                continue;                /* (the gap for the eyes) */
+            cv_rect(x - w / 2, y + k, w, 2, hit ? RGB(220, 220, 220) : RGB(160, 146, 108));
+        }
+        pb_thick(x + 14, y + 8, x + 22, y + 18, 1, RGB(212, 196, 150));   /* a loose end */
+        break;
+    case 2:                              /* a long muzzle, the nose, shaggy cheeks and a tuft */
+        disc(x, y + 8, 10, hit ? C_INK : RGB(170, 160, 150));
+        cv_rect(x - 9, y + 2, 19, 6, hit ? C_INK : RGB(170, 160, 150));
+        disc(x, y + 2, 3, dark);
+        for (k = 0; k < 3; k++) {
+            pb_thick(x - 17, y + 2 + k * 4, x - 22, y + 4 + k * 5, 0, RGB(70, 64, 62));
+            pb_thick(x + 17, y + 2 + k * 4, x + 22, y + 4 + k * 5, 0, RGB(70, 64, 62));
+        }
+        pb_thick(x - 4, y - 17, x - 1, y - 23, 1, RGB(70, 64, 62));
+        pb_thick(x + 3, y - 17, x + 5, y - 22, 1, RGB(70, 64, 62));
+        break;
+    case 3:                              /* messy hair, a stitched scar */
+        for (k = -12; k <= 12; k += 6)
+            disc(x + k, y - 15, 5, dark);
+        pb_thick(x - 12, y - 9, x + 11, y - 11, 0, RGB(60, 40, 50));
+        for (k = -10; k <= 9; k += 5)
+            cv_rect(x + k, y - 12, 1, 4, RGB(60, 40, 50));
+        break;
+    default:                             /* scales */
+        for (k = 0; k < 8; k++)
+            disc(x - 12 + (k % 4) * 8 + (k / 4) * 4, y - 12 + (k / 4) * 5, 1, RGB(30, 90, 76));
+        break;
+    }
+    eye_c = anger == 0 ? (kind == 1 ? C_YEL : kind == 2 ? RGB(255, 200, 40) : RGB(30, 20, 40))
+                       : anger == 1 ? RGB(220, 40, 50) : RGB(255, 60, 60);
+    if (kind == 4)
+        ex = 8;
+    for (k = -1; k <= 1; k += 2) {       /* the eyes */
+        int32_t cx = x + k * ex;
+        if (kind == 1 && k < 0 && anger < 2)
+            continue;                    /* (the mummy's other eye, under its bandage) */
+        if (anger >= 2)
+            disc(cx, ey, 6, mix565(skin, RGB(255, 40, 40), 140));   /* glowing */
+        disc(cx, ey, kind == 4 ? 5 : 4, kind == 4 || kind == 3 ? RGB(240, 240, 220) : C_INK);
+        disc(cx, ey, 2, eye_c);
+        if (kind == 3 && anger == 0)     /* heavy lids */
+            cv_rect(cx - 4, ey - 4, 9, 3, skin);
+    }
+    for (k = -1; k <= 1; k += 2) {       /* the brows: level, then slanting down to a scowl */
+        int32_t ox = x + k * ex;
+        if (anger == 0)
+            pb_thick(ox - 4, ey - 7, ox + 4, ey - 7, 0, dark);
+        else if (anger == 1)
+            pb_thick(ox - k * 5, ey - 9, ox + k * 3, ey - 6, 0, dark);
+        else
+            pb_thick(ox - k * 6, ey - 11, ox + k * 3, ey - 5, 1, dark);
+    }
+    if (anger == 0)                      /* the mouth: shut, a frown, then wide open */
+        cv_rect(x - 6, y + 9, 12, 2, dark);
+    else if (anger == 1) {
+        cv_rect(x - 6, y + 10, 12, 2, dark);
+        cv_rect(x - 8, y + 12, 3, 2, dark);
+        cv_rect(x + 5, y + 12, 3, 2, dark);
+    } else {
+        disc(x, y + 11, 6, dark);
+        cv_rect(x - 5, y + 6, 10, 2, RGB(240, 240, 230));
+    }
+    if (kind == 0 || kind == 2) {        /* fangs */
+        cv_rect(x - 4, y + (anger >= 2 ? 7 : 10), 2, 4, RGB(250, 250, 250));
+        cv_rect(x + 2, y + (anger >= 2 ? 7 : 10), 2, 4, RGB(250, 250, 250));
     }
 }
 static void pb_wall_draw(int32_t x1, int32_t y1, int32_t x2, int32_t y2)   /* the dungeon's gold-banded stone */
@@ -1068,6 +1282,30 @@ static void pb_scene(void)
         int32_t bob = (int32_t)(fm_sinf((float)ms * 0.005f + (float)i * 2.0f) * 1.5f);
         if (y < -20 || y > 260)
             continue;
+        if (i == PB_BOSS) {              /* THE BOSS: a monster, angrier as it's hit, its health over it */
+            uint32_t hq = ms - pb.boss_hit_at, dq = ms - pb.boss_down_at;
+            int hit = pb.boss_hit_at && hq < 140u, k2, anger;
+            if (pb.boss_down_at && dq < PB_BOSS_BACK) {   /* down: its head pops off the table, spinning away */
+                if (dq < 900u) {
+                    float t = (float)dq;
+                    int32_t yy = y - (int32_t)(t * 0.28f + t * t * 0.0004f), xx = x + (int32_t)(fm_sinf(t * 0.02f) * 10.0f);
+                    pb_monster((pb.boss_lv + PB_NMON - 1) % PB_NMON, xx, yy, 2, (dq / 60u) & 1u, ms);
+                }
+                continue;
+            }
+            if (pb.boss_down_at && dq < PB_BOSS_BACK + 400u)   /* the next rising from the floor */
+                y += (int32_t)(PB_BOSS_BACK + 400u - dq) / 10;
+            anger = pb.boss_hp * 3 > pb.boss_max * 2 ? 0 : pb.boss_hp * 3 > pb.boss_max ? 1 : 2;
+            pb_monster(pb_mon(), x, y + bob, anger, hit, ms);
+            {                            /* its health: a bar over it, red when it's nearly done */
+                int32_t w = 40, fill = (int32_t)pb.boss_hp * w / (pb.boss_max ? pb.boss_max : 1);
+                cv_rect(x - w / 2 - 1, y - 32, w + 2, 6, RGB(10, 6, 18));
+                cv_rect(x - w / 2, y - 31, fill, 4, anger >= 2 ? C_PINK : anger ? RGB(255, 150, 60) : C_YEL);
+                for (k2 = 1; k2 < pb.boss_max && pb.boss_max <= 16; k2++)
+                    cv_rect(x - w / 2 + k2 * w / pb.boss_max, y - 31, 1, 4, RGB(10, 6, 18));
+            }
+            continue;
+        }
         {                                /* a pop bumper: lamps round it, a black rubber skirt, a gold ring, its cap */
             int l;
             uint16_t cc = PB_BUMPER_C[i];
@@ -1083,10 +1321,46 @@ static void pb_scene(void)
             disc(x, y + sq, 13, hit ? C_INK : cc);          /* the cap */
             disc(x - 4, y - 5 + sq, 4, mix565(cc, C_INK, hit ? 255 : 150));   /* its shine */
             (void)bob;
-            {                            /* a star on its cap */
-                disc(x, y + sq, 6, hit ? cc : mix565(cc, RGB(10, 6, 18), 90));
-                cv_rect(x - 5, y - 1 + sq, 11, 3, C_INK);
-                cv_rect(x - 1, y - 5 + sq, 3, 11, C_INK);
+            {                            /* a little monster on its cap: a bat, a ghost, a pumpkin, a skull, a spider */
+                int32_t cy = y + sq, ic = i < PB_BOSS ? i : i - 1, k2;
+                uint16_t ink = RGB(14, 10, 20), white = RGB(240, 236, 228);
+                switch (ic) {
+                case 0:                  /* a bat */
+                    disc(x, cy, 3, ink);
+                    pb_thick(x - 9, cy - 3, x - 2, cy, 1, ink);
+                    pb_thick(x + 9, cy - 3, x + 2, cy, 1, ink);
+                    pb_thick(x - 9, cy - 3, x - 6, cy + 2, 0, ink);
+                    pb_thick(x + 9, cy - 3, x + 6, cy + 2, 0, ink);
+                    cv_rect(x - 2, cy - 1, 1, 1, C_PINK), cv_rect(x + 1, cy - 1, 1, 1, C_PINK);
+                    break;
+                case 1:                  /* a ghost */
+                    disc(x, cy - 2, 6, white);
+                    cv_rect(x - 6, cy - 2, 13, 7, white);
+                    cv_rect(x - 6, cy + 5, 3, 2, white), cv_rect(x - 1, cy + 5, 3, 2, white), cv_rect(x + 4, cy + 5, 3, 2, white);
+                    disc(x - 2, cy - 2, 1, ink), disc(x + 2, cy - 2, 1, ink);
+                    break;
+                case 2:                  /* a pumpkin */
+                    disc(x, cy + 1, 7, RGB(255, 140, 30));
+                    cv_rect(x - 1, cy - 8, 3, 3, RGB(60, 140, 50));
+                    cv_rect(x - 4, cy - 1, 2, 2, ink), cv_rect(x + 3, cy - 1, 2, 2, ink);
+                    cv_rect(x - 3, cy + 3, 7, 2, ink);
+                    break;
+                case 3:                  /* a skull */
+                    disc(x, cy - 1, 6, white);
+                    cv_rect(x - 3, cy + 3, 7, 4, white);
+                    disc(x - 2, cy - 1, 2, ink), disc(x + 3, cy - 1, 2, ink);
+                    cv_rect(x - 1, cy + 4, 1, 3, ink), cv_rect(x + 1, cy + 4, 1, 3, ink);
+                    break;
+                default:                 /* a spider */
+                    for (k2 = -1; k2 <= 1; k2 += 2) {
+                        pb_thick(x, cy, x + k2 * 9, cy - 5, 0, ink);
+                        pb_thick(x, cy, x + k2 * 10, cy, 0, ink);
+                        pb_thick(x, cy, x + k2 * 9, cy + 5, 0, ink);
+                    }
+                    disc(x, cy, 4, ink);
+                    cv_rect(x - 2, cy - 2, 1, 1, C_PINK), cv_rect(x + 1, cy - 2, 1, 1, C_PINK);
+                    break;
+                }
             }
         }
     }
@@ -1094,7 +1368,7 @@ static void pb_scene(void)
         float a = pb.ang[i], L = PB_FL[i][2];
         int32_t px = (int32_t)PB_FL[i][0], py = SY(PB_FL[i][1]);
         int32_t tx = px + (int32_t)(L * fm_cosf(a)), ty = py + (int32_t)(L * fm_sinf(a));
-        int up = pb.w[i] != 0.0f || (i & 1 ? HELD_R : HELD_L);
+        int up = pb.w[i] != 0.0f || (i & 1 ? HELD_R || HELD_S1 : HELD_L);
         pb_thick(px + 1, py + 2, tx + 1, ty + 2, 3, RGB(4, 2, 10));
         pb_thick(px, py, tx, ty, 3, RGB(30, 30, 50));
         pb_thick(px, py, tx, ty, 2, up ? C_INK : RGB(170, 180, 200));
@@ -1138,9 +1412,9 @@ static void pb_scene(void)
     cv_rect(0, 0, 240, 24, C_BG);        /* the header over it all */
     if (!pb.over) {                      /* what's next, under it: a goal at a time, in turn */
         char g[32], v[6];
-        int which = (int)((ms / 2600u) % 5u), done = 0, k2;
+        int which = (int)((ms / 2600u) % 6u), done = 0, k2;
         uint16_t gc = C_GHOST;
-        for (k2 = 0; k2 < 5 && !done; k2++, which = (which + 1) % 5) {
+        for (k2 = 0; k2 < 6 && !done; k2++, which = (which + 1) % 6) {
             done = 1;
             if (which == 0) {
                 tcpy(g, "SHOOT  STAIRS  PORTAL  ORBIT");
@@ -1167,6 +1441,16 @@ static void pb_scene(void)
                 tcat(g, "/3  X");
                 itos(pb.mult + 1, v);
                 tcat(g, v);
+            } else if (which == 5 && pb_boss_up()) {   /* the boss */
+                tcpy(g, PB_MON_NAME[pb_mon()]);
+                tcat(g, " ");
+                itos(pb.boss_hp, v);
+                tcat(g, v);
+                tcat(g, "/");
+                itos(pb.boss_max, v);
+                tcat(g, v);
+                tcat(g, "  MULTIBALL");
+                gc = C_PINK;
             } else if (which == 4 && pb.mult < 5) {
                 itos(pb.drop[0] + pb.drop[1] + pb.drop[2] + pb.drop[3], v);
                 tcpy(g, "TARGETS ");

@@ -457,6 +457,8 @@ typedef struct {
     int8_t win[4][2];                    /* the four, to light */
     int8_t drop_c, drop_r;               /* the disc falling (its square), -1 none */
     uint32_t drop_at;                    /* (ms) */
+    uint8_t landed;                      /* the falling disc has landed (its thud's juice done) */
+    float hx;                            /* the waiting disc's x, gliding to its column */
     int8_t last_c, last_r;
     /* the computer */
     uint8_t thinking;
@@ -560,11 +562,19 @@ static void f_new(void)
     fr.col = 3;
     fr.over = 0;
     fr.drop_c = -1;
+    fr.landed = 1;
+    fr.hx = 0.0f;
     fr.last_c = -1;
     fr.thinking = 0;
     fr.tier = 0;
     for (c = 0; c < F_COLS; c++)
         fr.seq_ms[c] = 0;
+}
+#define F_G 0.0022f                      /* the disc's fall: px/ms/ms, from where it waits */
+static uint32_t f_fall_ms(int r)         /* how long a disc takes to fall to row r */
+{
+    float d = (float)(F_Y + (F_ROWS - 1 - r) * F_C + F_C / 2 - 36);
+    return (uint32_t)fm_sqrtf(2.0f * d / F_G);
 }
 static void f_drop(int c)
 {
@@ -574,9 +584,10 @@ static void f_drop(int c)
     fr.b[r][c] = fr.side;
     fr.drop_c = (int8_t)c, fr.drop_r = (int8_t)r;
     fr.drop_at = plat_ms();
+    fr.landed = 0;
     fr.last_c = (int8_t)c, fr.last_r = (int8_t)r;
     {                                    /* it sounds as it lands: its column a note, its row higher up the scale */
-        float fall = 0.03f * (float)(F_ROWS - r);
+        float fall = (float)f_fall_ms(r) * 0.001f;
         k_on(k_at(fall), degree_note(c + 2 * r + 7) - (fr.side < 0 ? 12 : 0), 100, fr.side > 0 ? NF_P1 : NF_P2, 0.6f);
     }
     if (f_four(fr.b, r, c, fr.win)) {
@@ -611,7 +622,23 @@ static void f_tick(void)
     static const int8_t ORD[7] = {3, 2, 4, 1, 5, 0, 6};
     static const int8_t DEPTH[5] = {0, 1, 2, 4, 8};   /* plies: EASY sees only its own move */
     int c, r, sc;
-    if (!fr.thinking || (fr.drop_c >= 0 && plat_ms() - fr.drop_at < 250u))
+    if (fr.drop_c >= 0 && !fr.landed && plat_ms() - fr.drop_at >= f_fall_ms(fr.drop_r)) {   /* the thud (Nick, 19
+                                          * Nov 2026: a drop with juice) */
+        int32_t x = F_X + fr.drop_c * F_C + F_C / 2, y = F_Y + (F_ROWS - 1 - fr.drop_r) * F_C + F_C / 2;
+        uint16_t col = fr.b[fr.drop_r][fr.drop_c] > 0 ? C_CYAN : C_PINK;
+        fr.landed = 1;
+        juice_shake(2 + (F_ROWS - fr.drop_r) / 2, 160);
+        juice_kick(0, 2 + (F_ROWS - fr.drop_r) / 2);
+        juice_burst(x, y + 10, 10, 2, col, C_INK, 0);
+        juice_ring(x, y, 24, col, 260);
+        if (fr.over && fr.winner) {      /* four in a row: the line flashes, confetti */
+            juice_flash(RGB(255, 255, 255), 140, 300);
+            juice_shake(7, 450);
+            juice_confetti(120, 110, 50);
+            juice_pop(120, 72, players == 1 ? (fr.winner > 0 ? "FOUR!" : "OOPS") : "FOUR!", C_YEL);
+        }
+    }
+    if (!fr.thinking || (fr.drop_c >= 0 && plat_ms() - fr.drop_at < f_fall_ms(fr.drop_r) + 200u))
         return;
     c = ORD[fr.ri];                      /* a column a frame */
     r = f_top(c);
@@ -716,19 +743,24 @@ static void f_scene(void)
     const char *who = fr.over ? "" : players == 2 ? (fr.side > 0 ? "P1 (CYAN)" : "P2 (PINK)")
                                                   : fr.side > 0 ? DIFF_NAME[st.depth] : "THINKING";
     header("ROWS", C_CYAN, "", C_PINK, who);
-    if (!fr.over) {                      /* the disc about to drop, over its column */
+    if (!fr.over) {                      /* the disc about to drop, gliding over its column, bobbing */
         uint16_t pc = fr.side > 0 ? C_CYAN : C_PINK;
-        disc(F_X + fr.col * F_C + F_C / 2, 36, 11, players == 1 && fr.side < 0 ? C_GHOST : pc);
+        float tx = (float)(F_X + fr.col * F_C + F_C / 2);
+        if (fr.hx < 1.0f)
+            fr.hx = tx;
+        fr.hx += (tx - fr.hx) * 0.35f;
+        if (fr.drop_c < 0 || fr.landed)
+            disc((int32_t)fr.hx, 36 + (int32_t)(fm_sinf((float)ms * 0.006f) * 2.0f), 11,
+                 players == 1 && fr.side < 0 ? C_GHOST : pc);
     }
     cv_rect(F_X - 4, F_Y - 4, F_COLS * F_C + 8, F_ROWS * F_C + 8, RGB(40, 30, 90));
     for (r = 0; r < F_ROWS; r++)
         for (c = 0; c < F_COLS; c++) {
             int32_t x = F_X + c * F_C + F_C / 2, y = F_Y + (F_ROWS - 1 - r) * F_C + F_C / 2;
             int v = fr.b[r][c], lit = 0;
-            if (c == fr.drop_c && r == fr.drop_r && ms - fr.drop_at < 30u * (uint32_t)(F_ROWS - r)) {   /* falling */
-                int32_t yy = F_Y + (int32_t)((ms - fr.drop_at) / 30u) * F_C + F_C / 2;
+            if (c == fr.drop_c && r == fr.drop_r && ms - fr.drop_at < f_fall_ms(r) + 140u) {   /* (drawn below, over
+                                          * the board) */
                 disc(x, y, 12, C_BG);
-                disc(x, yy, 12, v > 0 ? C_CYAN : C_PINK);
                 continue;
             }
             for (k = 0; fr.over && fr.winner && k < 4; k++)
@@ -740,7 +772,23 @@ static void f_scene(void)
             if (c == fr.last_c && r == fr.last_r && !fr.over)
                 disc(x, y, 3, C_INK);
         }
-    if (fr.over) {
+    if (fr.drop_c >= 0 && ms - fr.drop_at < f_fall_ms(fr.drop_r) + 140u) {   /* the disc falling, then a hop */
+        int32_t x = F_X + fr.drop_c * F_C + F_C / 2, y = F_Y + (F_ROWS - 1 - fr.drop_r) * F_C + F_C / 2;
+        uint32_t q = ms - fr.drop_at, fall = f_fall_ms(fr.drop_r);
+        uint16_t dc = fr.b[fr.drop_r][fr.drop_c] > 0 ? C_CYAN : C_PINK;
+        if (q < fall) {                  /* falling: faster and faster, a trail behind */
+            float t = (float)q, yy = 36.0f + 0.5f * F_G * t * t, sp = F_G * t;
+            int j;
+            for (j = 3; j >= 1; j--)
+                disc(x, (int32_t)(yy - sp * 12.0f * (float)j), 12 - 3 * j, mix565(C_BG, dc, 150 - 40 * j));
+            disc(x, (int32_t)yy, 12, dc);
+        } else {                         /* landed: a little hop, flashing white */
+            float hq = (float)(q - fall) / 140.0f;
+            int32_t hop = (int32_t)(fm_sinf(hq * 3.1415927f) * 5.0f);
+            disc(x, y - hop, 12, mix565(dc, C_INK, (int32_t)(160.0f * (1.0f - hq))));
+        }
+    }
+    if (fr.over && fr.landed) {          /* (once the last disc has landed) */
         cv_rect(40, 100, 160, 44, C_BG);
         frame_rect(40, 100, 160, 44, C_YEL);
         text_c(120, 102, &FONT_M, fr.winner == 0 ? "A DRAW" : players == 1 ? (fr.winner > 0 ? "YOU WIN" : "I WIN")

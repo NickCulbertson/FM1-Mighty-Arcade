@@ -57,13 +57,17 @@ expect mode_is_DODGE 1
 wait 600
 expect bx_balls 1
 expect bx_god 0
-# a bar at a time: four bars and another ball comes in (92 BPM: 2.6 s a bar)
-wait 11500
+# a star caught: another ball (no ball comes with the bars any more); level 1's second star opens the exit
+wait 2500
+expect bx_grab 1
+wait 100
 expect bx_balls 2
 expect bx_lit >2
 shot bounce.png
-wait 10500
-expect bx_balls 3
+wait 3000
+expect bx_grab 1
+wait 100
+expect bx_exit 1
 # hit: back to one
 expect bx_hurt 0
 wait 100

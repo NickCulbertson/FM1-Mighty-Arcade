@@ -20,13 +20,13 @@ enum { PO_CLACK, PO_RAIL, PO_POCKET, PO_WIN, PO_BASS, PO_HAT, PO_KICK, PO_SNARE,
 #define PO_X0 18.0f                      /* the cloth, inside the cushions */
 #define PO_X1 222.0f
 #define PO_Y0 52.0f
-#define PO_Y1 230.0f
+#define PO_Y1 220.0f                      /* (was 230: the bottom pockets ran off the screen, Nick, 19 Nov 2026) */
 #define PO_MOUTH 11.0f                   /* a pocket's mouth: the cushions stop this far from its middle */
 #define PO_CAP 8.5f                      /* a ball whose middle comes this near a pocket's: down */
 #define PO_VMAX 0.95f                    /* a full shot, px/ms */
 #define PO_CUE_X 120.0f                  /* the cue ball's spot */
-#define PO_CUE_Y 200.0f
-static const int16_t PO_POCK[6][2] = {{16, 50}, {120, 47}, {224, 50}, {16, 232}, {120, 235}, {224, 232}};
+#define PO_CUE_Y 192.0f
+static const int16_t PO_POCK[6][2] = {{16, 50}, {120, 47}, {224, 50}, {16, 222}, {120, 225}, {224, 222}};
 static const uint8_t PO_PTONE[6] = {4, 5, 6, 1, 2, 3};   /* each pocket's chord tone (h_tone's): the far end higher */
 static const uint16_t PO_BCOL[PO_NB] = {RGB(244, 242, 232), RGB(255, 210, 63), RGB(90, 140, 255), RGB(255, 70, 80),
                                         RGB(176, 124, 255), RGB(255, 150, 60), RGB(110, 240, 140), RGB(170, 60, 70),
@@ -46,6 +46,7 @@ typedef struct {
     uint8_t sink_k[4];
     uint32_t sink_at[4];
 } po_t;
+#define PO_PAR 6                         /* a rack in this many shots or fewer: par */
 static uint32_t po_best;                 /* the fewest shots to clear a table */
 #define po (*(po_t *)g_arena)
 _Static_assert(sizeof(po_t) <= sizeof g_arena, "po: the arena is too small");
@@ -514,8 +515,8 @@ static void po_scene(void)
     {                                    /* the room, the rails (wood, its diamonds), the cloth */
         int32_t y;
         cv_rect(0, 38, 240, 202, RGB(20, 14, 30));
-        cv_rect(6, 40, 228, 200, RGB(70, 38, 24));
-        cv_rect(8, 42, 224, 196, RGB(120, 70, 40));
+        cv_rect(6, 40, 228, 192, RGB(70, 38, 24));
+        cv_rect(8, 42, 224, 188, RGB(120, 70, 40));
         cv_rect(8, 42, 224, 2, RGB(170, 110, 65));
         for (y = (int32_t)PO_Y0 - 4; y < (int32_t)PO_Y1 + 4; y++)
             cv_rect((int32_t)PO_X0 - 4, y, (int32_t)(PO_X1 - PO_X0) + 8, 1,
@@ -526,7 +527,7 @@ static void po_scene(void)
             if (i == 4)
                 continue;
             cv_rect(16 + i * 26, 44, 2, 2, RGB(240, 220, 170));
-            cv_rect(16 + i * 26, 235, 2, 2, RGB(240, 220, 170));
+            cv_rect(16 + i * 26, 226, 2, 2, RGB(240, 220, 170));
         }
         for (i = 1; i < 4; i++) {
             cv_rect(10, 52 + i * 45, 2, 2, RGB(240, 220, 170));
@@ -593,15 +594,15 @@ static void po_scene(void)
     tcat(s, "  SHOT ");
     itos(po.shots + (po.phase == 0 ? 1 : 0), n);
     tcat(s, n);
-    tcat(s, "  ");
-    itos((int32_t)po.score, n);
+    tcat(s, " / PAR ");                  /* (no points: shots against par, as golf) */
+    itos(PO_PAR, n);
     tcat(s, n);
-    tcat(s, " PTS");
     header("POOL", C_CYAN, "", C_PINK, s);
     if (po.phase == 2) {                 /* the table cleared: its card */
         cv_rect(36, 92, 168, 80, C_BG);
         frame_rect(36, 92, 168, 80, C_YEL);
-        text_c(120, 98, &FONT_B, "TABLE CLEARED!", C_YEL);
+        text_c(120, 98, &FONT_B, po.shots < PO_PAR ? "UNDER PAR!" : po.shots == PO_PAR ? "PAR!" : "TABLE CLEARED!",
+               C_YEL);
         tcpy(s, "");
         itos(po.shots, n);
         tcat(s, n);

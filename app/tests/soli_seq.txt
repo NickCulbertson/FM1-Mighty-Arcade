@@ -15,5 +15,5 @@ wait 3500
 expect so_tier 3
 expect so_home44 0
 wait 3500
-expect so_tier 5
+expect so_tier 6
 shot soliseq5.png

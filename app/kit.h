@@ -591,7 +591,7 @@ static float knob_secs(int32_t v) { return 0.001f * fm_exp2f((float)v * 0.132877
 /* Mighty Arp's sounds the prototypes play */
 enum { S_TINES, S_DREAM, S_VIBES, S_MARIMBA, S_CELESTA, S_CRYSTAL, S_TUBE, S_HARP, S_KOTO, S_NYLON, S_FMBASS,
        S_16BASS, S_SQBASS, S_KICK, S_SNARE, S_HAT, S_LOGDRUM, S_BRASSPAD, S_GLASSPAD, S_DRONE, S_DEEPSEA, S_SYNCLEAD,
-       S_METAL, S_CHIP, S_FLUTE, S_SONAR, S_SQLEAD, S_SAWPLUCK, S_SOFTSAW, NKSND };
+       S_METAL, S_CHIP, S_FLUTE, S_SONAR, S_SQLEAD, S_SAWPLUCK, S_SOFTSAW, S_TDRONE, NKSND };
 static const ksnd_t KSND[NKSND] = {
     {"TINES EP", 4, 0, {{CARRIER(1, 0, 1.0f), OP(1, 0, 0.25f, 0, 0, 0, 1.2f, 0.15f),
                          OP(1, 3, 0.35f, 0, 1, 0, 2.0f, 0.08f), OP(14, 0, 0.21f, 0, 0, 0, 0.07f, 0)}, 0, 0},
@@ -679,6 +679,11 @@ static const ksnd_t KSND[NKSND] = {
     {"SOFT SAW", 2, 5, {{CARRIER(1, 0, 0.9f), OP(1, 0, 0.2f, 0, 0, 0.03f, 0.4f, 0.7f),
                          OP(3, 0, 0.1f, 0, 0, 0.03f, 0.3f, 0.6f), OP(1, 0, 0.12f, 0, 0, 0.05f, 0.4f, 0.6f)}, 0, 0},
      30, 70, 85, 40, 1.0f},
+    /* TUNED DRONE: DARK DRONE with its modulators on whole ratios (1.5, 3), so it sits in the key (CHESS's kings: Nick,
+     * 19 Nov 2026, the drones sounded out of tune) */
+    {"TUNED DRONE", 4, 4, {{CARRIER(0.5f, 0, 0.7f), OP(1.5f, 0, 0.22f, 0, 0, 1.5f, 6.0f, 0.8f),
+                           CARRIER(1, 4, 0.45f), OP(3.0f, 0, 0.18f, 0, 0, 2.5f, 6.0f, 0.7f)}, 0, 0},
+     70, 90, 90, 85, 0.9f},
 };
 
 /* the main sound's knobs: everything a voice does not keep (the LFO, the filter, the effects) */
@@ -696,7 +701,8 @@ static void kp_defaults(eng_params_t *p)
     p->lfo_shape = LFO_SINE;
     p->vib = 0.0f, p->trem = 0.0f, p->bend = 0.0f;
     p->chorus = 0.25f, p->chorus_hz = 0.4f, p->chorus_depth = 60.0f;
-    p->dly_samples = 0.375f * SR_F, p->dly_fb = 0.35f, p->dly_mix = 0.18f, p->dly_width = 0.85f;
+    p->dly_samples = 0.375f * SR_F, p->dly_fb = 0.35f, p->dly_mix = 0.18f, p->dly_width = 0.45f;   /* (width
+                                          * was 0.85: narrower, Nick, 19 Nov 2026) */
     p->rev_mix = 0.22f, p->rev_secs = 2.5f, p->rev_dark = 0.45f, p->shimmer = 0.0f;
     p->filter = 0, p->cut = 14.0f, p->res = 0.0f, p->env = 0.0f, p->lfo_cut = 0.0f;
     p->fatt = 0.0f, p->fdec = 0.5f, p->fsus = 1.0f, p->frel = 0.5f;
@@ -916,3 +922,18 @@ static uint32_t kr(void)
 static int32_t kr_in(int32_t lo, int32_t hi) { return lo + (int32_t)(kr() % (uint32_t)(hi - lo + 1)); }
 static int kr_pc(uint32_t pc) { return kr() % 100u < pc; }
 static float kr_f(void) { return (float)(kr() >> 8) * (1.0f / 16777216.0f); }
+/* what a hit says (a life lost, a hit taken): one at random, never the same twice running (Nick, 19 Nov 2026: more
+ * than OUCH, and funny) */
+static const char *oops_word(void)
+{
+    static const char *const W[] = {"OUCH!", "HECK!", "SHOOT!", "POOP!", "DANG!",  "BRUH!",  "NOPE!", "SHEESH!",
+                                    "RAGE!", "WHY!",  "OOF!",   "YIKES!", "WHOOPS!", "BONK!", "RATS!", "UGH!",
+                                    "NOOO!", "GAH!",  "WELP!",  "DARN!",  "CRUD!",  "ARGH!",  "BLAST!", "YOWCH!"};
+    static uint32_t last = 99u;
+    uint32_t k;
+    do
+        k = kr() % (uint32_t)(sizeof W / sizeof W[0]);
+    while (k == last);
+    last = k;
+    return W[k];
+}

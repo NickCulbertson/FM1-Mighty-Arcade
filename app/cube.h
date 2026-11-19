@@ -10,7 +10,8 @@
  * melody. A chain of two or more earns a BOMB: it falls with a fuse that sparks on the beat and blasts a hole five
  * wide and three deep, gems and all.
  *
- *   left / right   move (held: it repeats)     up   turn     down   faster     A   drop it
+ *   left / right   move (held: it repeats)     up or F5   turn     down   faster     G5   drop it (Nick, 19 Nov 2026:
+ *                  two buttons on the right, as a controller's)
  * And a sequencer: a playhead walks the twelve columns, an eighth each, and each plays its top cube (a gem its own
  * note; else the taller the column, the higher) (CHANCE, SOUND, scale and key on the knobs; the tempo is the level's). */
 
@@ -586,7 +587,7 @@ static void cube(int32_t x, int32_t y, uint16_t c)   /* a cube: its face, a ligh
 static void cu_gem(int32_t x, int32_t y, uint16_t c, uint32_t ms, int i)   /* a note gem: a faceted jewel, glowing */
 {
     int32_t cx = x + CELL / 2 - 1, cy = y + CELL / 2, k, g = 120 + (int32_t)((ms / 9u + (uint32_t)i * 37u) % 120u);
-    cv_rect(x, y + 1, CELL - 2, CELL - 2, mix565(RGB(10, 7, 18), c, 60));
+    /* (no tinted square round it: Nick, 19 Nov 2026) */
     for (k = -6; k <= 6; k++) {          /* a diamond, lit on its upper left */
         int32_t w = 6 - (k < 0 ? -k : k);
         cv_rect(cx - w, cy + k, w, 1, mix565(c, C_INK, k < 0 ? 120 : 0));
@@ -670,9 +671,9 @@ static void cu_scene(void)
         for (i = 0; i < cu.bombs; i++)
             disc(206 + i * 10, WY + 120, 3, RGB(255, 170, 60));
     }
-    cv_text(202, WY + 130, &FONT_T, "UP", C_GHOST);
+    cv_text(202, WY + 130, &FONT_T, "F5", C_GHOST);   /* (the two buttons on the right: Nick, 19 Nov 2026) */
     cv_text(202, WY + 141, &FONT_T, "TURNS", C_PURP);
-    cv_text(202, WY + 160, &FONT_T, "TOP", C_GHOST);
+    cv_text(202, WY + 160, &FONT_T, "G5", C_GHOST);
     cv_text(202, WY + 171, &FONT_T, "DROPS", C_PURP);
     cv_text(202, WY + 188, &FONT_T, "4 POP", C_GHOST);
     if (cu.over) {

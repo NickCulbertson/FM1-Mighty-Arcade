@@ -2,7 +2,7 @@
  * Copyright (C) 2026 Nick Culbertson */
 /* MIGHTY ARCADE (prototype): a box of casual games that make music. This file: the menu, the modes, and CHESS (two
  * engines, or you against one, or two players), where the board is the score. A playhead sweeps the files a to h,
- * an eighth note each, a bar a sweep; each piece it passes may sound (DENSITY), its pitch from its rank, its voice from
+ * an eighth note each, a bar a sweep; each piece it passes may sound (CHANCE), its pitch from its rank, its voice from
  * what it is: pawns plucked, knights a marimba, bishops a celesta, rooks a low electric piano, queens a glass pad, the
  * king a drone. Black is an octave down. A move every bar or so (MOVE): the piece's from and to sung on vibraphone; a
  * capture swells, a check pings, castling and promotion have their figures, mate rings the bells. As pieces come off
@@ -11,8 +11,8 @@
  *   PLAY   pause / play on                 HOME   a new game
  *   SEL    YOU VS CPU: you play white. Keys, in any octave: C left, E right, C# up, D down, A select (a piece,
  *          then where to; its moves are dotted; A on it again, or OCT-, lets go). The music goes on as you think
- *   K1 TEMPO   K2 DENSITY   K3 MOVE (every 1, 2 or 4 bars)   K4 BLUNDER (how often a player plays any old move)
- *   PRESET the scale   ALGO how deep they think (1..4)   keys: play along in the scale */
+ *   K1 TEMPO   K2 CHANCE   K3 MOVE (every 1, 2 or 4 bars)   (K4 free: the difficulty sets the blunders)
+ *   PRESET the scale   ALGO the key   SELECT how deep they think (1..4)   keys: play along in the scale */
 #include "kit.h"
 #include "chess.h"
 
@@ -33,31 +33,36 @@ typedef struct {
     int8_t root;
     int8_t step[7];
 } scale_t;
-static const scale_t SCALES[] = {     /* PRESET's order (Nick, 17 Nov 2026): the pentatonic first, the default */
-    {"G PENTA", 55, {0, 2, 4, 7, 9, 12, 14}},  {"C MAJOR", 48, {0, 2, 4, 5, 7, 9, 11}},
-    {"A MINOR", 45, {0, 2, 3, 5, 7, 8, 10}},   {"D DORIAN", 50, {0, 2, 3, 5, 7, 9, 10}},
-    {"F LYDIAN", 53, {0, 2, 4, 6, 7, 9, 11}},  {"E PHRYGIAN", 52, {0, 1, 3, 5, 7, 8, 10}},
-    {"G MIXOLYDIAN", 55, {0, 2, 4, 5, 7, 9, 10}},
-};
+static const scale_t SCALES[] = {     /* PRESET's order (Nick, 17 Nov 2026): the pentatonic first, the default.
+                                          * All on G (Nick, 19 Nov 2026: PRESET changes the scale, never the key;
+                                          * ALGORITHM moves the key. G, not C: G PENTA's pitch is the one he liked,
+                                          * and C sat a fourth lower) */
+    {"G PENTA", 55, {0, 2, 4, 7, 9, 12, 14}},  {"G MAJOR", 55, {0, 2, 4, 5, 7, 9, 11}},
+    {"G MINOR", 55, {0, 2, 3, 5, 7, 8, 10}},   {"G HARM MAJOR", 55, {0, 2, 4, 5, 7, 8, 11}},
+    {"G HARM MINOR", 55, {0, 2, 3, 5, 7, 8, 11}},
+};                                       /* (HARM MINOR and HARM MAJOR: 19 Nov 2026) */
 #define NSCALE (sizeof SCALES / sizeof SCALES[0])
 enum { SL_PAWN, SL_KNIGHT, SL_BISHOP, SL_ROOK, SL_QUEEN, SL_KING, SL_MOVE, SL_SWELL, SL_PING, SL_BELLS, SL_PLAY };
 /* a piece's voice: its sound slot, octave (in scale degrees), how likely it sounds, how long, how loud */
 static const struct {
     int8_t deg;
-    uint8_t chance;                      /* of 100, at DENSITY 50 */
+    uint8_t chance;                      /* of 100, at CHANCE 50 */
     float secs;
     uint8_t vel;
 } VOICE[7] = {{0, 0, 0, 0},       {0, 34, 0.4f, 74},  {7, 45, 0.3f, 80},  {9, 40, 0.7f, 70},
-              {-7, 30, 0.9f, 82}, {2, 50, 1.8f, 64},  {-14, 100, 3.0f, 70}};
+              {-7, 30, 0.9f, 82}, {2, 50, 1.8f, 64},  {-7, 100, 3.0f, 70}};   /* (the king an octave up from
+                                          * -14: two octaves under the key it was a rumble, its root unheard) */
 
 static cpos_t pos;
 static uint32_t hashes[320];
 static int8_t sq_last[2] = {-1, -1};      /* the last move's from and to */
 static struct {
-    uint8_t scale, depth, move_every, density, blunder, tempo;   /* tempo: BPM */
+    uint8_t scale, depth, move_every, density, tempo;   /* tempo: BPM */
     uint8_t paused, over;                /* over: 1 a game ended (its result in result[]) */
     uint8_t vs;                          /* 1: you play white against the computer (SEL) */
 } st;
+/* how often each difficulty (st.depth) plays any old move (Nick, 19 Nov 2026: the blunders folded into the difficulty, K4 freed) */
+static const uint8_t DIFF_BLUNDER[5] = {0, 12, 6, 2, 0};
 static char result[24], comment[48], san_last[12];
 static int eval_now;                     /* white's view, centipawns (the bar) */
 
@@ -83,7 +88,7 @@ static struct {
 static int your_turn(void) { return st.vs && !st.over && (st.vs == 2 || pos.side > 0) && !pending_ok && !apply_t; }
 static uint32_t over_t;                  /* when the next game starts */
 
-/* the key: the scale's own root, moved (SOLITAIRE's ALGORITHM knob), kept within G#2 .. G3 */
+/* the key: G, moved by ALGORITHM (every game's), kept within G#2 .. G3 */
 static int8_t key_shift;
 static int key_root(void)
 {
@@ -95,7 +100,7 @@ static int key_root(void)
     return r;
 }
 static const char *const NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-static void scale_name(char *t)          /* "E DORIAN": the key's note, then the scale's kind */
+static void scale_name(char *t)          /* "E MINOR": the key's note, then the scale's kind */
 {
     const char *k = SCALES[st.scale].name;
     while (*k && *k != ' ')
@@ -110,24 +115,71 @@ static int degree_note(int deg)          /* a scale degree (0 = the root) as a M
     return key_root() + 12 * oct + s->step[d];
 }
 /* --------------------------------------------------------------- harmony --- */
-/* the chords every game plays over: Nick's voicings (Mighty Arp's LUSH, from his Macro MIDI Pad), notes from the
- * key's root for each degree, the bass first: the major key's with their ninths, the minor's. Whenever a game's chord
- * changes, a new one at random in the key, never the same twice running */
-#define HV 127
-static const int8_t H_LUSH_MAJ[7][5] = {{-12, 7, 12, 14, 16}, {-10, 5, 7, 12, 16}, {-8, 7, 11, 12, 16},
-                                        {-7, 7, 9, 12, 16}, {-5, 7, 11, 12, 14}, {-3, 7, 11, 12, 16},
-                                        {-1, 7, 11, 12, 14}};
-static const int8_t H_LUSH_MIN[7][5] = {{0, 7, 12, 15, HV}, {2, 10, 14, 17, HV}, {3, 7, 10, 15, HV}, {5, 8, 12, 17, HV},
-                                        {7, 10, 14, 19, HV}, {3, 8, 12, 15, HV}, {5, 10, 14, 17, HV}};
+/* the chords every game plays over: Nick's voicings (Mighty Arp's LUSH, from his Macro MIDI Pad), the bass first,
+ * notes from a major key's root for each of its degrees. Every scale but MINOR plays them exactly as written, never a
+ * note moved (Nick, 19 Nov 2026: moving the notes that didn't fit made MIXOLYDIAN and the like sound bad): a mode has
+ * the same notes as a major key (G MIXOLYDIAN, C major's), so its chords are that key's, starting on the mode's own
+ * (MIXOLYDIAN on the fifth's). MINOR has its own four-voice shapes. Whenever a game's chord changes, a new one at
+ * random in the key, never the same twice running */
+static const int8_t H_LUSH[7][5] = {{-12, 7, 12, 14, 16}, {-10, 5, 7, 12, 16}, {-8, 7, 11, 12, 16},
+                                    {-7, 7, 9, 12, 16},   {-5, 7, 11, 12, 14}, {-3, 7, 11, 12, 16},
+                                    {-1, 7, 11, 12, 14}};
+static const int8_t H_MAJOR[7] = {0, 2, 4, 5, 7, 9, 11};
+static const int8_t H_LUSH_MIN[7][4] = {{0, 7, 12, 15}, {2, 10, 14, 17}, {3, 7, 10, 15}, {5, 8, 12, 17},
+                                        {7, 10, 14, 19}, {3, 8, 12, 15}, {5, 10, 14, 17}};
+static const int8_t H_LUSH_HARM[7][4] = {{0, 3, 7, 11}, {2, 5, 8, 12}, {3, 7, 11, 14}, {5, 8, 12, 15},
+                                         {7, 11, 14, 17}, {8, 12, 15, 19}, {11, 14, 17, 20}};
+/* each scale (SCALES' order): its chords, and the degree of their key it starts on (PENTA and MAJOR the key's own;
+ * DORIAN the second, as D DORIAN is C major's). MINOR and HARM MINOR: their own shapes, from the root */
+/* HARM MAJOR (Nick, 19 Nov 2026): written in his LUSH's manner, its I, iii, iv (minor: the sound of it) and V only;
+ * its others are diminished or augmented. The unused rows repeat I */
+static const int8_t H_HMAJ[7][5] = {{-12, 7, 12, 14, 16}, {-12, 7, 12, 14, 16}, {-8, 7, 11, 12, 16},
+                                    {-7, 7, 8, 12, 14},   {-5, 7, 11, 12, 14}, {-12, 7, 12, 14, 16},
+                                    {-12, 7, 12, 14, 16}};
+enum { HS_LUSH, HS_MIN, HS_HARM, HS_HMAJ };   /* (DORIAN and PENTA OPEN cut, 19 Nov 2026: with the
+                                          * chords at random they sounded like MAJOR and PENTA) */
+static const uint8_t H_SET[5] = {HS_LUSH, HS_LUSH, HS_MIN, HS_HMAJ, HS_HARM};
+static const uint8_t H_MODE[5] = {0, 0, 0, 0, 0};
+static int h_set(void) { return H_SET[st.scale % 5u]; }
+static int h_minor(void) { return h_set() == HS_MIN || h_set() == HS_HARM; }   /* four voices, from the root */
+static int h_nv(void) { return h_minor() ? 4 : 5; }   /* the chord's voices, the bass one of them */
+static int h_parent(void)                /* the major key's root from the scale's, in semitones (within a fifth) */
+{
+    int o = -H_MAJOR[H_MODE[st.scale % 5u]];
+    return o < -6 ? o + 12 : o;
+}
+static int scale_fit(int note)           /* a note moved to the nearest of the scale's own (down, on a tie) */
+{
+    const scale_t *s = &SCALES[st.scale];
+    int pc = ((note - key_root()) % 12 + 12) % 12, best = 99, i;
+    for (i = 0; i < 7; i++) {
+        int d = s->step[i] % 12 - pc;
+        if (d > 6)
+            d -= 12;
+        if (d < -6)
+            d += 12;
+        if (d * d < best * best || (d * d == best * best && d < best))
+            best = d;
+    }
+    return note + best;
+}
 static uint8_t h_deg;                    /* the chord now: its degree (0 the key's own) */
 static uint32_t h_bar = 0xFFFFFFFFu;     /* the bar (or turn) it was chosen for */
-static int h_minor(void) { return SCALES[st.scale].step[2] == 3; }   /* a minor third: the minor voicings */
-static const int8_t *h_voice(void) { return h_minor() ? H_LUSH_MIN[h_deg] : H_LUSH_MAJ[h_deg]; }
+static int h_v(int k)                    /* the chord now: its voice k, from the scale's root */
+{
+    switch (h_set()) {
+    case HS_MIN: return H_LUSH_MIN[h_deg][k % 4];
+    case HS_HARM: return H_LUSH_HARM[h_deg][k % 4];
+    case HS_HMAJ: return H_HMAJ[h_deg][k];
+    default: return H_LUSH[h_deg][k] + h_parent();
+    }
+}
 static void h_change(void)               /* a new chord, at random in the key, not the one before */
 {
+    static const uint8_t HMAJ_DEG[5] = {0, 2, 3, 3, 4};   /* HARM MAJOR's: I iii iv V, the iv twice as often */
     uint8_t d;
     do
-        d = (uint8_t)(kr() % 7u);
+        d = h_set() == HS_HMAJ ? HMAJ_DEG[kr() % 5u] : (uint8_t)(kr() % 7u);
     while (d == h_deg);
     h_deg = d;
 }
@@ -139,14 +191,14 @@ static int h_deg_at(uint32_t bar)        /* the chord for a bar: a new one each 
     }
     return h_deg;
 }
-static void h_reset(void)                /* a game starts: on the key's own chord */
+static void h_reset(void)                /* a game starts: on the scale's own chord */
 {
-    h_deg = 0;
+    h_deg = h_minor() ? 0 : H_MODE[st.scale % 5u];
     h_bar = 0;
 }
 static int h_bass(void)                  /* the chord's bass, low (C2 .. B2) */
 {
-    int n = key_root() + h_voice()[0];
+    int n = key_root() + h_v(0);
     while (n > 47)
         n -= 12;
     while (n < 36)
@@ -156,31 +208,21 @@ static int h_bass(void)                  /* the chord's bass, low (C2 .. B2) */
 static int h_note(int k)                 /* the chord's voice k (1..4 the upper ones; past the last, round again an
                                           * octave up) */
 {
-    const int8_t *v = h_voice();
-    int n = h_minor() ? 4 : 5, up = 0;
+    int up = 0;
     if (k < 1)
         return h_bass();
-    while (k >= n || v[k] == HV) {      /* (the minor ones have four; k checked before v[k] is read: the fanfare asks
-                                          * for up to the eighth, GPT's review, 18 Nov 2026) */
-        k -= n - 1;
+    while (k >= h_nv()) {
+        k -= h_nv() - 1;
         up += 12;
-        if (k < 1)
-            k = 1;
-        if (k < n && v[k] != HV)
-            break;
     }
-    return key_root() + v[k] + up;
+    return key_root() + h_v(k) + up;
 }
 static int h_tone(int i)                 /* the chord's tones, from the key's root up: i 0 the lowest, past the last
                                           * round again an octave up (every one of them in the pad's chord) */
 {
-    const int8_t *v = h_voice();
     int pc[5], n = 0, j, k;
-    for (j = 0; j < 5; j++) {
-        int c;
-        if (v[j] == HV)
-            continue;
-        c = ((v[j] % 12) + 12) % 12;
+    for (j = 0; j < h_nv(); j++) {
+        int c = ((h_v(j) % 12) + 12) % 12;
         for (k = 0; k < n && pc[k] != c; k++)
             ;
         if (k == n)
@@ -197,9 +239,9 @@ static int h_tone(int i)                 /* the chord's tones, from the key's ro
 }
 static void h_pad(uint32_t t, int vel, int slot, float secs, int oct)   /* the voicing whole, softly spread */
 {
-    int k, n = h_minor() ? 4 : 5;
+    int k;
     k_on(t, h_bass() + 12 * (oct < 0 ? oct + 1 : oct), vel, (uint32_t)slot, secs);
-    for (k = 1; k < n; k++)
+    for (k = 1; k < h_nv(); k++)
         k_on(t + (uint32_t)k * 600u, h_note(k) + 12 * oct, vel - 6, (uint32_t)slot, secs);
 }
 
@@ -239,7 +281,7 @@ static void think(void)                  /* the next move, ahead of its bar */
     you.from = -1;
     if (st.over || st.vs == 2 || (st.vs && pos.side > 0))   /* yours: the keys pick it */
         return;
-    if (kr_pc(st.blunder)) {             /* BLUNDER: any old legal move */
+    if (kr_pc(DIFF_BLUNDER[st.depth > 4u ? 4u : st.depth])) {   /* a blunder: any old legal move */
         cmove_t m[128];
         int n = c_legal(&pos, m);
         if (n) {
@@ -255,6 +297,8 @@ static void think(void)                  /* the next move, ahead of its bar */
 static void game_new(void)
 {
     uint32_t i;
+    h_reset();                           /* the key's own chord, under the kings' drone (a chord left over from
+                                          * another game was in another key's place) */
     c_reset(&pos);
     c_rng ^= plat_ms() * 2654435761u + 1u;
     for (i = 0; i < 64u; i++)
@@ -354,7 +398,7 @@ static void move_sounds(uint32_t t, uint32_t step)
     if (m.cap) {                         /* a capture: a swell under the taken piece */
         int n = piece_note(m.cap, m.to) - 12;
         k_on(t + step, n, 70, SL_SWELL, 1.6f);
-        k_on(t + step, n + 7, 60, SL_SWELL, 1.6f);
+        k_on(t + step, scale_fit(n + 7), 60, SL_SWELL, 1.6f);   /* (its fifth, in the scale) */
     }
     if (check)
         k_on(t + 2u * step, degree_note(14 + 4), 96, SL_PING, 1.5f);
@@ -367,7 +411,7 @@ static void move_sounds(uint32_t t, uint32_t step)
     if (!c_legal(&after, (cmove_t[128]){0}) && check) {   /* mate: the bells, the chord of the key */
         for (i = 0; i < 4; i++)
             k_on(t + 3u * step + (uint32_t)i * 2205u, degree_note(2 * i), 100, SL_BELLS, 3.0f);
-        k_on(t + 3u * step, degree_note(-14), 90, SL_KING, 8.0f);
+        k_on(t + 3u * step, degree_note(-7), 90, SL_KING, 8.0f);
     }
     flash_t[FILE_OF(m.to) + 8 * RANK_OF(m.to)] = t + step;
     flash_c[FILE_OF(m.to) + 8 * RANK_OF(m.to)] = (uint8_t)(side > 0 ? 1 : 2);
@@ -385,11 +429,17 @@ static void step_at(uint32_t t)
         apply_t = t + sp;                /* the board changes as the second note sounds */
         move_sounds(t, sp);
     }
-    if (file == 0u && bar % 2u == 0u) {  /* the kings' drone, every other bar, quietly */
+    if (file == 0u && bar % 2u == 0u) {  /* the kings' drone, every other bar, quietly: always the key's root (Nick,
+                                          * 19 Nov 2026: a king's rank was its pitch, so a king that walked droned on
+                                          * a second or a sixth, under everything else) */
         for (i = 0; i < 2u; i++) {
             int ks = pos.kpos[i];
-            if (kr_pc(55))
-                sound(t, i ? -KING : KING, ks, -10);
+            if (kr_pc(55)) {
+                k_on(t, degree_note(VOICE[KING].deg) - (i ? 12 : 0),
+                     (uint32_t)clamp(VOICE[KING].vel - 10 + kr_in(-10, 10), 20, 127), SL_KING, VOICE[KING].secs);
+                flash_t[FILE_OF(ks) + 8 * RANK_OF(ks)] = t;
+                flash_c[FILE_OF(ks) + 8 * RANK_OF(ks)] = (uint8_t)(i ? 2 : 1);
+            }
         }
     }
     for (r = 0; r < 8; r++) {            /* the file's other pieces */
@@ -424,6 +474,11 @@ static struct {
     int8_t rep_k;                        /* the direction key held (it repeats), -1 none */
     uint32_t rep_at;
 } ui = {.rep_k = -1};
+/* auto-fire (Nick, 19 Nov 2026): in SWARM and DRIFT, the top key held fires on every eighth note of the music, so a
+ * held trigger plays in time; the groove queues the eighths (as their notes are scheduled), the tick fires on them */
+static uint32_t af_q[8], af_since;
+static uint8_t af_w, af_r;
+static uint16_t af_n;                    /* auto-fire's shots (a probe) */
 
 void app_say(const char *a, const char *b)
 {
@@ -537,6 +592,7 @@ enum { M_MENU,
        M_LIGHTS, M_DROP, M_POOL,
        M_FOUR, M_2048, M_CHECK,
        NMODE };
+static uint8_t help_on;                  /* EDIT's controls overlay is up (help_scene) */
 static const char *const MODE_NAME[NMODE] = {"MENU",
                                              "BOUNCE", "SWARM", "DRIFT",
                                              "CHESS", "DICE SYNTH", "SOLITAIRE",
@@ -564,7 +620,7 @@ static int score_game(uint32_t m)
 }
 static int solo_game(uint32_t m)
 {
-    return m == M_SOLI || m == M_LIGHTS || m == M_PINBALL || m == M_GOLF ||
+    return m == M_SOLI || m == M_LIGHTS || m == M_PINBALL ||   /* (GOLF: two players since 19 Nov 2026) */
            m == M_DROP || m == M_BOUNCE || m == M_DICE || m == M_POOL;
 }   /* one player */
 static int arcade_game(uint32_t m) { return m == M_BRICK || m == M_SWARM || m == M_DRIFT; }
@@ -639,10 +695,12 @@ static int game_over_now(void)
 #define PK_D (1u << 2)
 #define PK_E (1u << 3)
 #define PK_A (1u << 4)
+#define PK_B (1u << 5)                   /* G5: the second button (CUBES' drop) */
 static uint32_t pk_keys(uint32_t w)      /* those parts as keys */
 {
     return (w & PK_C ? 1u << PAD_L : 0u) | (w & PK_U ? 1u << PAD_U : 0u) | (w & PK_D ? 1u << PAD_D : 0u) |
-           (w & PK_E ? 1u << PAD_R : 0u) | (w & PK_A ? PAD_SEL_KEYS : 0u);
+           (w & PK_E ? 1u << PAD_R : 0u) | (w & PK_A ? PAD_SEL_KEYS : 0u) |
+           (w & PK_B ? 1u << PAD_S1 : 0u);
 }
 static uint32_t play_pcs(void)
 {
@@ -657,6 +715,8 @@ static uint32_t play_pcs(void)
     case M_BOUNCE: w = arrows; break;                            /* DODGE: move, nothing else */
     case M_POOL: w = po.phase == 2 ? PK_A : all; break;          /* aim (C# D finely); A held: the shot */
     case M_SNAKE: case M_2048: w = arrows; break;                /* steer, slide */
+    case M_CUBE: w = cu.over ? PK_A : all | PK_B; break;          /* move, turn (F5 or up), faster, G5 drops */
+    case M_PINBALL: w = all | PK_B; break;                       /* G5: the right flipper too */
     default: w = all; break;                                     /* the menu, the board and puzzle games, CUBE
                                                                   * DROP, BUMPIN BALL, DEFUSE, DARK, SOLITAIRE */
     }
@@ -857,6 +917,8 @@ static void groove_run(void)
         case M_POOL: po_groove(gr_next_t, gr_step); break;
         default: so_groove(gr_next_t, gr_step); break;
         }
+        if ((mode == M_SWARM || mode == M_DRIFT) && gr_step % 2u == 0u && (uint8_t)(af_w - af_r) < 8u)
+            af_q[af_w++ % 8u] = sq_ms(gr_next_t);   /* (an eighth: auto-fire's moment) */
         if (mode != M_MENU && mode != M_DICE)
             music_layer(gr_next_t, gr_step, six);
         gr_next_t += six;
@@ -874,7 +936,7 @@ static struct {
 } mn;
 static void menu_roll(void)
 {
-    static const uint8_t TIER[8] = {0, 0, 0, 1, 2, 3, 4, 5};
+    static const uint8_t TIER[8] = {0, 0, 1, 2, 3, 4, 5, 6};
     int c;
     mn.tier = TIER[(kr() >> 16) % 8u];
     mn.keys = (uint8_t)((kr() >> 16) % 2u);
@@ -897,7 +959,7 @@ static void mn_groove(uint32_t t, uint32_t step)   /* as SOLITAIRE's, from mn: a
             int c = (int)(p / 2u);
             if (mn.pat[c] && sq_roll(SQ_SOLI))
                 k_on(t, h_tone(mn.pat[c] - 1), 26u + kr() % 16u + (p % 8u == 0u ? 8u : 0u), SS_KEYS, 2.0f);
-        } else if (kr() % 100u < (uint32_t)sq_cfg[SQ_SOLI].chance * (mn.tier >= 5 ? 3u : 1u) / 5u) {
+        } else if (kr() % 100u < (uint32_t)sq_cfg[SQ_SOLI].chance * (mn.tier == SQ_DOUBLE ? 3u : 1u) / 5u) {
             uint8_t n = mn.pat[kr() % 8u];
             if (n)
                 k_on(t, h_tone(n - 1) + 12, 16u + kr() % 12u, SS_KEYS, 1.6f);
@@ -913,6 +975,8 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
                                           * change: a note left sounding (or still to come) would play on with the
                                           * next game's sound in its slot, a stray tone (Nick heard it on HOME). The
                                           * reverb's tail carries on, so it doesn't click */
+    help_on = 0;                         /* (a new game: its controls hidden until EDIT) */
+    af_r = af_w;                         /* (no auto-fire left over from another game) */
     if (m == M_MENU && mode != M_MENU)   /* back from a game: the menu's music rolled afresh */
         menu_roll();
     mode = (uint8_t)m;
@@ -969,11 +1033,13 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
 }
 
 /* the five keys, in any octave: C left, E right, C# up, D down, A select */
-enum { D_NONE, D_LEFT, D_RIGHT, D_UP, D_DOWN, D_SEL };
+enum { D_NONE, D_LEFT, D_RIGHT, D_UP, D_DOWN, D_SEL, D_SEL2 };   /* D_SEL2: G5, CUBES' drop */
 static int key_dir(uint32_t k)
 {
     if (k == PAD_S0)                     /* F5: select (arcade.h's PAD_*: a controller's layout) */
         return D_SEL;
+    if (k == PAD_S1 && mode == M_CUBE)   /* G5: a second button on the right, CUBES' drop (Nick, 19 Nov 2026) */
+        return D_SEL2;
     switch (k) {
     case PAD_L: return D_LEFT;
     case PAD_R: return D_RIGHT;
@@ -1020,8 +1086,10 @@ static void act(int d)                   /* a direction or a select, to the game
                 k_on(0, h_tone(players == 2 ? 8 : 6), 80, SS_PICK, 0.4f);
             } else if (players == 2 && solo_game(menu_at))
                 app_say(MODE_NAME[menu_at], "IS ONE PLAYER");
-            else
+            else {
                 enter(menu_at);
+                app_say(mode == M_DICE ? "GLO:" : "EDIT:", "CONTROLS");   /* where the controls are, in the header */
+            }
         }
         break;
     case M_CHESS:
@@ -1038,7 +1106,14 @@ static void act(int d)                   /* a direction or a select, to the game
         else
             so_nav(dx, dy);
         break;
-    case M_CUBE: cu_nav(dx, dy, sel); break;
+    case M_CUBE:                         /* F5 turns (up too), G5 drops; F5 again after it's over */
+        if (d == D_SEL2)
+            cu_nav(0, 0, 1);
+        else if (sel && !cu.over)
+            cu_nav(0, 1, 0);
+        else
+            cu_nav(dx, dy, sel);
+        break;
     case M_2048: tw_nav(dx, dy, sel); break;
     case M_SNAKE:
         if (sel && sn.over)
@@ -1061,9 +1136,23 @@ static void act(int d)                   /* a direction or a select, to the game
     default: break;
     }
 }
+static void autofire_tick(void)          /* held past a tap: a shot on each eighth as it sounds */
+{
+    uint32_t ms = plat_ms();
+    int held = (ui.keys & PAD_SEL_KEYS) != 0u;
+    if (!held)
+        af_since = 0;
+    else if (!af_since)
+        af_since = ms | 1u;
+    while (af_r != af_w && (int32_t)(ms - af_q[af_r % 8u]) >= 0) {
+        af_r++;
+        if (held && ms - af_since >= 220u && (mode == M_SWARM || mode == M_DRIFT))
+            act(D_SEL), af_n++;
+    }
+}
 static int repeats(int d)
 {
-    return d != D_SEL && !(mode == M_CUBE && d == D_UP) && mode != M_2048 && mode != M_SNAKE && !arcade_game(mode) &&
+    return d != D_SEL && d != D_SEL2 && !(mode == M_CUBE && d == D_UP) && mode != M_2048 && mode != M_SNAKE && !arcade_game(mode) &&
            mode != M_PINBALL && mode != M_GOLF &&
            mode != M_DROP && mode != M_BOUNCE && mode != M_POOL;   /* (a move a press: a
                                                                      * handshake's and a stroke's are the game) */
@@ -1121,6 +1210,10 @@ static void input(void)
         }
     }
     pressed = btn & ~ui.btn;
+    if (pressed >> (mode == M_DICE ? B_GLO : B_EDIT) & 1u) {   /* the controls: shown, hidden (help_scene) */
+        help_on ^= 1u;
+        pressed &= ~(1u << B_EDIT | 1u << B_GLO);
+    }
     if (pressed >> B_HOME & 1u && mode != M_MENU) {   /* HOME: the menu, from any game */
         enter(M_MENU);
         app_say("MENU", "");
@@ -1155,7 +1248,7 @@ static void input(void)
     }
     if (pressed >> B_OCTDN & 1u && st.vs && you.from >= 0)   /* let the piece go */
         you.from = -1;
-    if (mode != M_CHESS) {               /* the knobs are the chess music's (ALGORITHM: the difficulty, here too;
+    if (mode != M_CHESS) {               /* the knobs are the chess music's (SELECT: the difficulty, here too;
                                           * K4: EFFECTS, in every game) */
         uint32_t i;
         if (mode == M_MENU) {            /* the menu: PRESET the scale, ALGORITHM the key, for every game (they
@@ -1236,7 +1329,21 @@ static void input(void)
                 app_say("KEY", t);
             }
         }
-        if ((e = plat_enc(EN_ALGO)) != 0 && (mode == M_CHECK || mode == M_FOUR)) {
+        if (sq_game() < 0 && mode != M_MENU) {   /* the others (CHECKERS, DARK, PINBALL, GOLF): the same */
+            char t[16];
+            if ((e = plat_enc(EN_PRESET)) != 0) {
+                st.scale = (uint8_t)clamp((int32_t)st.scale + e, 0, (int32_t)NSCALE - 1);
+                scale_name(t);
+                app_say("SCALE", t);
+            }
+            if ((e = plat_enc(EN_ALGO)) != 0) {
+                key_shift = (int8_t)((key_shift + e + 12) % 12);
+                scale_name(t);
+                app_say("KEY", t);
+            }
+        }
+        if ((e = plat_enc(EN_SELECT)) != 0 && (mode == M_CHECK || mode == M_FOUR)) {   /* SELECT: the computer's
+                                          * difficulty (ALGORITHM is the key in every game: Nick, 19 Nov 2026) */
             st.depth = (uint8_t)clamp(st.depth + e, 1, 4);
             app_say("DIFFICULTY", DIFF_NAME[st.depth]);
         }
@@ -1250,7 +1357,7 @@ static void input(void)
     }
     if ((e = plat_enc(EN_K2)) != 0) {
         st.density = (uint8_t)clamp(st.density + 2 * e, 0, 100);
-        knob_say("DENSITY", st.density, "%");
+        knob_say("CHANCE", st.density, "%");   /* (was DENSITY: CHANCE, as every game's K2: Nick, 19 Nov 2026) */
     }
     if ((e = plat_enc(EN_K3)) != 0) {
         static const uint8_t EV[3] = {1, 2, 4};
@@ -1259,21 +1366,23 @@ static void input(void)
         st.move_every = EV[i];
         knob_say("MOVE EVERY", st.move_every, st.move_every == 1 ? " BAR" : " BARS");
     }
-    if ((e = plat_enc(EN_K4)) != 0) {
-        st.blunder = (uint8_t)clamp(st.blunder + 2 * e, 0, 60);
-        knob_say("BLUNDER", st.blunder, "%");
-    }
+    (void)plat_enc(EN_K4);                /* (free: the blunders are the difficulty's) */
     if ((e = plat_enc(EN_PRESET)) != 0) {
         char t[16];
         st.scale = (uint8_t)clamp((int32_t)st.scale + e, 0, (int32_t)NSCALE - 1);
         scale_name(t);
         app_say("SCALE", t);
     }
-    if ((e = plat_enc(EN_ALGO)) != 0) {
+    if ((e = plat_enc(EN_ALGO)) != 0) {  /* the key, as in every game */
+        char t[16];
+        key_shift = (int8_t)((key_shift + e + 12) % 12);
+        scale_name(t);
+        app_say("KEY", t);
+    }
+    if ((e = plat_enc(EN_SELECT)) != 0) {   /* SELECT: how deep it thinks */
         st.depth = (uint8_t)clamp(st.depth + e, 1, 4);
         app_say("DIFFICULTY", DIFF_NAME[st.depth]);
     }
-    (void)plat_enc(EN_SELECT);
     ui.keys = keys;
     ui.btn = btn;
     plat_glow(1);
@@ -1284,12 +1393,16 @@ static void input(void)
         else if (mode != M_CHESS || your_turn())   /* the keys this game uses now, lit */
             lit = pk_keys(play_pcs());
         (void)i;
+        uint32_t hb = 1u << (mode == M_DICE ? B_GLO : B_EDIT);   /* the controls' button: lit while they show,
+                                          * half lit otherwise, so it stands out from the unused ones */
         if (mode != M_CHESS)
-            plat_leds(mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
-                      btn, lit | keys);
+            plat_leds((mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
+                      btn) | (help_on ? hb : 0u), lit | keys);
         else
         plat_leds((st.paused ? 0u : 1u << B_PLAY) | 1u << B_HOME | (st.vs ? 1u << B_SEL : 0u) |
-                  (st.vs && you.from >= 0 ? 1u << B_OCTDN : 0u) | btn, lit | keys);
+                  (st.vs && you.from >= 0 ? 1u << B_OCTDN : 0u) | btn | (help_on ? hb : 0u), lit | keys);
+        if (!help_on)
+            plat_lights_mid(hb, 0);
     }
 }
 void app_input_only(void) { input(); }
@@ -1437,8 +1550,10 @@ static void chess_scene(void)
         cv_text(x + 8, 4, &FONT_B, ui.msg[1], C_YEL);
     } else {
         cv_text(6, 4, &FONT_B, "CHESS", C_CYAN);
-        tcpy(t, st.vs == 2 ? (pos.side > 0 ? "P1 (CYAN)" : "P2 (PINK)") : st.vs ? DIFF_NAME[st.depth]
-                                                                                 : SCALES[st.scale].name);
+        if (st.vs)
+            tcpy(t, st.vs == 2 ? (pos.side > 0 ? "P1 (CYAN)" : "P2 (PINK)") : DIFF_NAME[st.depth]);
+        else
+            scale_name(t);               /* (the key with it: ALGORITHM moves it) */
         if (st.vs == 1)
             tcat(t, " VS YOU");
         text_r(234, 6, &FONT_XS, t, st.vs ? C_YEL : C_GHOST);
@@ -1532,13 +1647,14 @@ static void chess_scene(void)
         cv_text(215, BY + 66, &FONT_XS, num, C_PINK);
     }
     {                                    /* the knobs, small */
-        static const char *const KN[4] = {"BPM", "DENS", "EVERY", "OOPS"};
+        static const char *const KN[4] = {"BPM", "ODDS", "EVERY", "LEVEL"};   /* (K2: CHANCE, "ODDS" to fit the
+                                          * column; LEVEL: the difficulty, SELECT) */
         int32_t v[4];
-        v[0] = st.tempo, v[1] = st.density, v[2] = st.move_every, v[3] = st.blunder;
+        v[0] = st.tempo, v[1] = st.density, v[2] = st.move_every, v[3] = st.depth;
         for (i = 0; i < 4u; i++) {
             cv_text(214, BY + 100 + (int32_t)i * 23, &FONT_T, KN[i], C_GHOST);
             itos(v[i], num);
-            cv_text(214, BY + 110 + (int32_t)i * 23, &FONT_T, num, i == 3u && st.blunder ? C_YEL : C_PURP);
+            cv_text(214, BY + 110 + (int32_t)i * 23, &FONT_T, num, C_PURP);
         }
     }
     /* the commentary, or the result */
@@ -1716,14 +1832,14 @@ static void menu_icon(uint32_t m, int32_t x, int32_t y, int on)
         disc(bxp, byp, 3, on ? C_YEL : C_GHOST);
         break;
     }
-    case M_POOL: {                       /* POOL: the cloth, a pocket, three balls racked, the cue ball rolling in */
+    case M_POOL: {                       /* POOL: the cloth, three balls racked, the cue ball rolling in (no pocket
+                                          * in the corner: Nick, 19 Nov 2026) */
         int32_t q = on ? (int32_t)((ms / 30u) % 60u) : 0, cx = x + 30 - (q < 30 ? q * 16 / 30 : 16);
         static const int8_t RK[3][2] = {{10, 16}, {6, 12}, {6, 20}};
         static const uint16_t RC[3] = {RGB(255, 210, 63), RGB(255, 70, 80), RGB(90, 140, 255)};
         int k;
         cv_rect(x + 2, y + 4, 32, 24, on ? RGB(16, 104, 96) : C_LINE2);
         frame_rect(x + 1, y + 3, 34, 26, on ? RGB(150, 90, 50) : C_GHOST);
-        disc(x + 3, y + 5, 3, on ? RGB(6, 6, 10) : C_BG);
         for (k = 0; k < 3; k++) {
             int32_t kx = x + RK[k][0] - (on && q >= 30 && k == 0 ? (q - 30) / 6 : 0);
             disc(kx, y + RK[k][1], 3, on ? RC[k] : C_GHOST);
@@ -1805,6 +1921,103 @@ static void menu_scene(void)
     }
 }
 
+
+/* ------------------------------------------------------------------ help --- */
+/* EDIT: what the controls do in the game on screen, an overlay, on and off (Nick, 19 Nov 2026: the knobs say what
+ * they are only once turned). DICE SYNTH's EDIT is a lock, so there it's GLO. Rows: what, then what it does */
+typedef struct {
+    const char *k, *v;
+} help_t;
+#define H_SEQ {"K1", "TEMPO"}, {"K2", "CHANCE (NOTES THAT PLAY)"}, {"K3", "SOUND"}, {"K4", "EFFECTS VOLUME"}, \
+              {"PRESET", "SCALE"}, {"ALGO", "KEY"}
+#define H_FX {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}
+static const help_t HELP_MENU[] = {{"PAD", "MOVE"}, {"F5", "OPEN THE GAME"}, {"UP (TOP ROW)", "1 OR 2 PLAYERS"},
+                                   {"PRESET", "SCALE, FOR EVERY GAME"}, {"ALGO", "KEY, FOR EVERY GAME"},
+                                   {"HOME", "BACK HERE FROM A GAME"}, {0, 0}};
+static const help_t HELP_BRICK[] = {{"LEFT RIGHT", "MOVE THE PADDLE"}, {"F5", "LAUNCH THE BALL"}, H_SEQ, {0, 0}};
+static const help_t HELP_SWARM[] = {{"PAD", "MOVE THE ROCKET"}, {"F5", "FIRE (HOLD: ON THE BEAT)"}, H_SEQ, {0, 0}};
+static const help_t HELP_DRIFT[] = {{"LEFT RIGHT", "TURN"}, {"UP", "THRUST"}, {"F5", "FIRE (HOLD: ON THE BEAT)"}, H_SEQ,
+                                    {0, 0}};
+static const help_t HELP_CHESS[] = {{"PAD", "MOVE THE CURSOR"}, {"F5", "PICK A PIECE, THEN ITS SQUARE"},
+                                    {"OCT-", "PUT THE PIECE BACK"}, {"SEL", "YOU VS CPU / CPU VS CPU"},
+                                    {"PLAY", "PAUSE"}, {"K1", "TEMPO"}, {"K2", "CHANCE (NOTES THAT PLAY)"}, {"K3", "MOVE EVERY 1/2/4 BARS"},
+                                    {"PRESET", "SCALE"}, {"ALGO", "KEY"},
+                                    {"SELECT", "DIFFICULTY (AND BLUNDERS)"}, {0, 0}};
+static const help_t HELP_DICE[] = {{"KEYS", "PLAY THE SOUND"}, {"PLAY", "ROLL A NEW SOUND"},
+                                   {"EDIT ENV LFO FX", "LOCK A PART"}, {"PRESET", "KIND OF DIE"},
+                                   {"SELECT", "BACK THROUGH ROLLS"}, {"K1 - K4", "BRIGHT LENGTH SPACE WOBBLE"},
+                                   {"ARP", "HEAR IT"}, {"SAVE", "KEEP IT"}, {"SEQ", "THE KEPT ONES"},
+                                   {"OCT- OCT+", "OCTAVE"}, {"GLO", "THIS HELP"}, {0, 0}};
+static const help_t HELP_SOLI[] = {{"PAD", "MOVE"}, {"F5", "DRAW, TAKE, PUT DOWN"}, {"F5 ON HELD", "SEND IT HOME"},
+                                   {"PLAY", "NEW DEAL"}, H_SEQ, {0, 0}};
+static const help_t HELP_SNAKE[] = {{"PAD", "STEER"}, H_SEQ, {0, 0}};
+static const help_t HELP_CUBE[] = {{"LEFT RIGHT", "MOVE"}, {"F5 OR UP", "TURN"}, {"DOWN", "FASTER"},
+                                   {"G5", "DROP IT"}, {"K1", "TEMPO (BY THE LEVEL)"}, {"K2", "CHANCE (NOTES THAT PLAY)"},
+                                   {"K3", "SOUND"}, {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"},
+                                   {0, 0}};
+static const help_t HELP_MINES[] = {{"PAD", "MOVE"}, {"F5", "OPEN A SQUARE"}, {"HOLD F5", "FLAG IT"}, H_SEQ, {0, 0}};
+static const help_t HELP_GOLF[] = {{"UP DOWN", "PICK A COURSE"}, {"LEFT RIGHT", "AIM (HOLD: FASTER)"},
+                                   {"HOLD F5", "POWER, LET GO TO PUTT"}, H_FX, {0, 0}};
+static const help_t HELP_PINBALL[] = {{"LEFT (F3)", "LEFT FLIPPERS"}, {"G5 OR RIGHT", "RIGHT FLIPPERS"},
+                                      {"HOLD F5", "PLUNGER, LET GO TO LAUNCH"}, {"UP", "NUDGE"}, H_FX, {0, 0}};
+static const help_t HELP_BOUNCE[] = {{"PAD", "ROLL THE MARBLE"}, {"K1", "TEMPO"}, {"K2", "SPEED"}, {"K3", "SOUND"},
+                                     {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
+static const help_t HELP_LIGHTS[] = {{"PAD", "MOVE"}, {"F5", "FLIP A LIGHT AND ITS NEIGHBOURS"}, H_FX, {0, 0}};
+static const help_t HELP_DROP[] = {{"ANY KEY", "DROP A BALL FROM THERE"}, {"K1 - K4", "TILT THE PLATFORMS"},
+                                   {"SELECT", "THE BOARD"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
+static const help_t HELP_POOL[] = {{"LEFT RIGHT", "AIM (HOLD: FASTER)"}, {"UP DOWN", "AIM FINELY"},
+                                   {"HOLD F5", "POWER, LET GO TO SHOOT"}, H_SEQ, {0, 0}};
+static const help_t HELP_FOUR[] = {{"LEFT RIGHT", "PICK A COLUMN"}, {"F5", "DROP"}, H_SEQ,
+                                   {"SELECT", "DIFFICULTY"}, {0, 0}};
+static const help_t HELP_2048[] = {{"PAD", "SLIDE THE TILES"}, H_SEQ, {0, 0}};
+static const help_t HELP_CHECK[] = {{"PAD", "MOVE THE CURSOR"}, {"F5", "PICK A PIECE, THEN ITS SQUARE"}, H_FX,
+                                    {"SELECT", "DIFFICULTY"}, {0, 0}};
+static const help_t *help_rows(void)
+{
+    switch (mode) {
+    case M_BRICK: return HELP_BRICK;
+    case M_SWARM: return HELP_SWARM;
+    case M_DRIFT: return HELP_DRIFT;
+    case M_CHESS: return HELP_CHESS;
+    case M_DICE: return HELP_DICE;
+    case M_SOLI: return HELP_SOLI;
+    case M_SNAKE: return HELP_SNAKE;
+    case M_CUBE: return HELP_CUBE;
+    case M_MINES: return HELP_MINES;
+    case M_GOLF: return HELP_GOLF;
+    case M_PINBALL: return HELP_PINBALL;
+    case M_BOUNCE: return HELP_BOUNCE;
+    case M_LIGHTS: return HELP_LIGHTS;
+    case M_DROP: return HELP_DROP;
+    case M_POOL: return HELP_POOL;
+    case M_FOUR: return HELP_FOUR;
+    case M_2048: return HELP_2048;
+    case M_CHECK: return HELP_CHECK;
+    default: return HELP_MENU;
+    }
+}
+static void help_scene(void)
+{
+    const help_t *h = help_rows();
+    int n = 0, i;
+    int32_t y0, hgt;
+    if (!help_on)
+        return;
+    while (h[n].k)
+        n++;
+    hgt = 30 + n * 13 + 16;
+    y0 = 120 - hgt / 2;
+    if (y0 < 22)
+        y0 = 22;
+    cv_rect(6, y0, 228, hgt, RGB(12, 8, 22));
+    frame_rect(6, y0, 228, hgt, C_YEL);
+    text_c(120, y0 + 5, &FONT_T, mode == M_MENU ? "CONTROLS" : MODE_NAME[mode], C_YEL);
+    for (i = 0; i < n; i++) {
+        cv_text(14, y0 + 24 + i * 13, &FONT_T, h[i].k, C_CYAN);
+        cv_text(92, y0 + 24 + i * 13, &FONT_T, h[i].v, C_INK);
+    }
+    text_c(120, y0 + hgt - 15, &FONT_T, mode == M_DICE ? "GLO: CLOSE" : "EDIT: CLOSE", C_GHOST);
+}
 static void scene(void)
 {
     switch (mode) {
@@ -1829,6 +2042,7 @@ static void scene(void)
     default: menu_scene(); break;
     }
     turns_scene();
+    help_scene();
 }
 
 /* ------------------------------------------------------------------- boot --- */
@@ -1842,7 +2056,6 @@ void app_init(void)
     st.depth = 1;
     st.move_every = 1;
     st.density = 50;
-    st.blunder = 4;
     st.tempo = 76;
     fx();
     dc_init();
@@ -1859,7 +2072,7 @@ static void chess_sounds(void)
     k_slot_set(SL_BISHOP, &KSND[S_CELESTA]);
     k_slot_set(SL_ROOK, &KSND[S_TINES]);
     k_slot_set(SL_QUEEN, &KSND[S_GLASSPAD]);
-    k_slot_set(SL_KING, &KSND[S_DRONE]);
+    k_slot_set(SL_KING, &KSND[S_TDRONE]);
     k_slot_set(SL_MOVE, &KSND[S_VIBES]);
     k_slot_set(SL_SWELL, &KSND[S_BRASSPAD]);
     k_slot_set(SL_PING, &KSND[S_SONAR]);
@@ -1896,8 +2109,8 @@ void app_frame(void)
     case M_CHECK: ck_tick(); break;
     case M_FOUR: f_tick(); break;
     case M_BRICK: if (!(players == 2 && tp.phase)) br_tick(); break;
-    case M_SWARM: if (!(players == 2 && tp.phase)) sw_tick(); break;
-    case M_DRIFT: if (!(players == 2 && tp.phase)) dr_tick(); break;
+    case M_SWARM: if (!(players == 2 && tp.phase)) sw_tick(), autofire_tick(); break;
+    case M_DRIFT: if (!(players == 2 && tp.phase)) dr_tick(), autofire_tick(); break;
     case M_PINBALL: pb_tick(); break;
     case M_GOLF: gf_tick(); break;
     case M_DROP: dp_tick(); break;
@@ -2028,6 +2241,45 @@ int app_expect(const char *what, int *got)
         *got = pb.balls;
     else if (!strcmp(what, "pb_over"))
         *got = pb.over;
+    else if (!strcmp(what, "pb_boss"))     /* the boss's hit points */
+        *got = pb.boss_hp;
+    else if (!strncmp(what, "pb_mon_", 7)) {   /* (a test: pb_mon_K_H, monster K at H hit points of 9) */
+        pb.boss_lv = (uint8_t)atoi(what + 7), pb.boss_max = 9, pb.boss_hp = (uint8_t)atoi(what + 9);
+        pb.boss_down_at = 0, pb.boss_hit_at = 0;
+        *got = 0;
+    }
+    else if (!strcmp(what, "pb_boss_lv"))
+        *got = pb.boss_lv;
+    else if (!strcmp(what, "pb_boss_hit")) {   /* (a test: a ball into the boss) */
+        pb_boss_hit();
+        *got = 0;
+    } else if (!strcmp(what, "pb_cam_boss")) {   /* (a test: the view on the boss) */
+        pb.cam = (float)(PB_BUMPER[PB_BOSS][1] - 120), pb.camy = PB_BUMPER[PB_BOSS][1] - 120;
+        pb_cam_lock = 1;
+        *got = 0;
+    } else if (!strcmp(what, "sw_dives")) {   /* droids diving now */
+        int k, n2 = 0;
+        for (k = 0; k < SW_NB; k++)
+            n2 += sw.b[k].on && sw.b[k].dive;
+        *got = n2;
+    } else if (!strcmp(what, "sw_power")) {   /* (a test: a power-up, caught) */
+        sw.pu_on = 1, sw.pu_kind = 0, sw.pu_x = sw.px, sw.pu_y = sw.py + 8.0f;
+        *got = 0;
+    } else if (!strcmp(what, "sw_god")) {   /* (a test: nothing hurts you for a minute) */
+        sw.hurt_until = plat_ms() + 60000u;
+        *got = 1;
+    } else if (!strcmp(what, "af_n"))
+        *got = af_n;
+    else if (!strcmp(what, "sw_pow"))
+        *got = sw.pow;
+    else if (!strcmp(what, "li_par"))
+        *got = li.par;
+    else if (!strcmp(what, "gf_sink")) {    /* (a test: the ball drops, in two) */
+        gf.strokes = 2;
+        gf_sink();
+        *got = 0;
+    } else if (!strcmp(what, "gf_who"))
+        *got = gf.who;
     else if (!strcmp(what, "gf_next")) {    /* (a test: on to the next hole) */
         gf.hole = (uint8_t)((gf.hole + 1u) % 9u);
         gf_start_hole();
@@ -2065,7 +2317,7 @@ int app_expect(const char *what, int *got)
         }
         h_deg = d0;
     } else if (!strcmp(what, "mn_ok"))   /* (the menu's own music: a tier the kit has) */
-        *got = mn.tier <= 5u;
+        *got = mn.tier <= (uint8_t)SQ_TOP;
     else if (!strcmp(what, "po_left"))
         *got = po.left;
     else if (!strcmp(what, "po_shots"))
@@ -2123,6 +2375,12 @@ int app_expect(const char *what, int *got)
             *got += ndrop.floor_ms[i] != 0;
     } else if (!strcmp(what, "bx_lit"))
         *got = bx_lit_n();
+    else if (!strcmp(what, "bx_grab")) {   /* (a test: roll onto the star, if there is one) */
+        *got = bbox.star_on;
+        if (bbox.star_on)
+            bbox.px = bbox.sx, bbox.py = bbox.sy, bbox.pvx = bbox.pvy = 0.0f;
+    } else if (!strcmp(what, "bx_exit"))
+        *got = bbox.exit_on;
     else if (!strcmp(what, "bx_balls"))
         *got = bbox.nballs;
     else if (!strcmp(what, "bx_score"))
@@ -2229,6 +2487,15 @@ int app_expect(const char *what, int *got)
         *got = mi.opened;
     else if (!strcmp(what, "mi_over"))
         *got = mi.over;
+    else if (!strcmp(what, "mi_cur_open"))
+        *got = mi.open[mi.cy][mi.cx];
+    else if (!strcmp(what, "mi_flags")) {
+        int x, y, n = 0;
+        for (y = 0; y < MI_H; y++)
+            for (x = 0; x < MI_W; x++)
+                n += mi.flag[y][x];
+        *got = n;
+    }
     else if (!strcmp(what, "tw_score"))
         *got = (int)tw.score;
     else if (!strcmp(what, "ck_side"))

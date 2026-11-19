@@ -201,6 +201,9 @@ typedef struct {
     uint32_t nz;                         /* W14 NOISE's generator, the voice's own (two cores render voices) */
     uint32_t age;
     uint8_t on, rel, shed, wv[4], att[4];   /* att[k]: operator k still rising; shed: fading out for the CPU */
+    const eng_sound_t *src;              /* (prototype kit) the sound it was struck with: the same note in another
+                                          * sound takes a voice of its own (a pad's bass and the groove's on one pitch
+                                          * were one voice, and the second swallowed the first: Nick, 19 Nov 2026) */
     const int16_t *tab[4];               /* a table wave's table, for its pitch now (voice_pitch; 0 a sine's) */
     const int16_t *tab_was[4];           /* the one before, faded out over XF_N samples (xf: how much of it is left) */
     float xf[4];
@@ -360,7 +363,7 @@ void eng_note_on(int32_t note, uint32_t vel, int32_t gate)
         }
     } else {
         for (i = 0; i < ENG_NVOICE; i++)   /* the same note again: that voice, so it never stacks */
-            if (vc[i].on && vc[i].note == note)
+            if (vc[i].on && vc[i].note == note && vc[i].src == s)
                 v = &vc[i];
         if (!v && eng_active() < vc_cap) {   /* else a free one (under the cap) on the side with fewer sounding (the
                                               * two cores' work overlaps only so), else the oldest releasing, else
@@ -426,6 +429,7 @@ void eng_note_on(int32_t note, uint32_t vel, int32_t gate)
         v->f = f;
     v->f_to = f;
     v->note = note;
+    v->src = s;
     v->gate = gate;
     v->age = ++vc_age;
     for (k = 0, c = 0; k < 4u; k++) {

@@ -24,10 +24,11 @@ creatures you catch are the notes, a playhead plays them in time, and the drums 
 
 1. **The controls are a game pad.** Your left hand plays the pad on the lowest keys (**F3** left, **F#3** up,
    **G3** down, **A3** right) and your right hand presses **F5** to select (the games' hints call it the TOP KEY).
-   Only the keys a game uses light up.
+   Only the keys a game uses light up. **EDIT** shows what every control does in the game on screen (in DICE SYNTH, **GLO**).
 2. **Pick a game** from the menu: two pages of nine, right off the edge for the second. **HOME** comes back from any
    game. Up from the top row is the **PLAYERS** switch: 1, or 2 taking turns.
-3. **In the menu**, **PRESET** sets the scale and **ALGORITHM** the key for every game.
+3. **In every game**, **PRESET** sets the scale and **ALGORITHM** the key, shared by all of them (G to start).
+   In CHESS, CHECKERS and ROWS, **SELECT** sets how well the computer plays.
 4. **In the sequencer games**, **KNOB 1** is the tempo, **KNOB 2** the chance a note sounds, **KNOB 3** the sound and
    **KNOB 4** how loud the game's effects are. Turn it to 0 and only the music plays.
 

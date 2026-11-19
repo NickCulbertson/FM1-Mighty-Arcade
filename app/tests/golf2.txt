@@ -1,0 +1,50 @@
+# GOLF for two (Nick, 19 Nov 2026): each hole P1 then P2; the card has a row each, the lower total wins
+wait 600
+expect menu_to_BOUNCE 1
+tapkey 1
+expect menu_at 0
+tapkey 24
+expect players 2
+expect menu_to_GOLF 1
+tapkey 24
+expect mode_is_GOLF 1
+wait 400
+tapkey 24
+wait 2100
+expect gf_who 0
+expect gf_hole 0
+expect gf_sink 0
+wait 2800
+expect gf_phase 3
+shot golf2p_card1.png
+tapkey 24
+wait 300
+expect gf_who 1
+expect gf_hole 0
+expect gf_phase 0
+shot golf2p_p2.png
+expect gf_sink 0
+wait 2800
+tapkey 24
+wait 300
+expect gf_who 0
+expect gf_hole 1
+# to the last hole: both play it, then the card with both rows
+expect gf_next 2
+expect gf_next 3
+expect gf_next 4
+expect gf_next 5
+expect gf_next 6
+expect gf_next 7
+expect gf_next 8
+expect gf_sink 0
+wait 2800
+tapkey 24
+wait 300
+expect gf_who 1
+expect gf_sink 0
+wait 2800
+tapkey 24
+wait 300
+expect gf_phase 5
+shot golf2p_round.png

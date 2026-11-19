@@ -37,11 +37,9 @@ static const int16_t GP3[][2] = {{40, 34}, {200, 34}, {200, 232}, {40, 232}};
 static const int16_t GPW[][2] = {{16, 34}, {224, 34}, {224, 232}, {16, 232}};
 static const int16_t GP5[][2] = {{56, 34}, {184, 34}, {184, 232}, {56, 232}};
 static const int16_t GP8[][2] = {{30, 34}, {210, 34}, {210, 232}, {30, 232}};
-static const int16_t GB2[][2] = {{60, 76}};
 /* (no hole has a straight line to the cup, Nick 17 Nov 2026; on 18 Nov he asked for it to come from where the tee
  * and cup are, the green's shape, walls and water, not a bumper dropped on the line: the post stands in its own
  * corner now) */
-static const int16_t GB1[][2] = {{84, 116}};
 static const int16_t GW4[][4] = {{130, 34, 130, 150}};
 static const int16_t GW5[][4] = {{56, 140, 140, 140}};
 static const int16_t GW3[][4] = {{40, 132, 94, 132}, {146, 132, 200, 132}};
@@ -56,8 +54,10 @@ static const int16_t GW9[][4] = {{16, 166, 170, 166}, {70, 100, 224, 100}};
 static const int16_t GZ9[][5] = {{2, 112, 34, 30, 40}, {1, 176, 182, 44, 46}};
 #define GN(a) ((uint8_t)(sizeof a / sizeof a[0]))
 static const gf_hole_t GF_HOLES[9] = {   /* course 1: THE GARDEN (the first nine) */
-    {"THE POST", 3, 190, 214, 60, 62, GP1, GN(GP1), 0, 0, 0, 0, GB1, GN(GB1), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"DOGLEG", 3, 60, 208, 196, 72, GP2, GN(GP2), 0, 0, 0, 0, GB2, GN(GB2), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"THE POST", 3, 190, 214, 60, 62, GP1, GN(GP1), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {"DOGLEG", 3, 60, 208, 196, 72, GP2, GN(GP2), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                         /* (no bumpers on the first two: their L shapes block the straight line
+                                          * already, Nick 19 Nov 2026) */
     {"THE WINDMILL", 3, 120, 212, 120, 62, GP3, GN(GP3), GW3, GN(GW3), 0, 0, 0, 0, 120, 132, 24, 0, 0, 0, 0, 0},
     {"SAND TRAP", 3, 40, 212, 196, 58, GPW, GN(GPW), GW4, GN(GW4), GZ4, GN(GZ4), GB4, GN(GB4), 0, 0, 0, 0, 0, 0, 0, 0},
     {"THE HILL", 3, 76, 212, 164, 58, GP5, GN(GP5), GW5, GN(GW5), GZ5, GN(GZ5), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -69,8 +69,9 @@ static const gf_hole_t GF_HOLES[9] = {   /* course 1: THE GARDEN (the first nine
 /* course 2: THE CANYON, a desert at dusk (17 Nov 2026: Nick wanted more than nine holes) */
 static const int16_t CP1[][2] = {{16, 34}, {130, 34}, {130, 120}, {224, 120}, {224, 232}, {100, 232}, {100, 150}, {16, 150}};
 static const int16_t CZ1[][5] = {{1, 102, 122, 30, 28}};
-static const int16_t CW2[][4] = {{90, 110, 150, 110}, {90, 60, 90, 110}, {150, 60, 150, 110}, {90, 60, 105, 60}, {135, 60, 150, 60}};
-                                         /* (the mesa: its way in on the far side) */
+static const int16_t CW2[][4] = {{90, 110, 150, 110}, {90, 60, 90, 110}, {90, 60, 150, 60}, {150, 60, 150, 70},
+                                 {150, 100, 150, 110}};
+                                         /* (the mesa: its way in on the right side, Nick 19 Nov 2026) */
 static const int16_t CW7[][4] = {{86, 150, 130, 150}, {110, 100, 154, 100}};   /* the gulch's ledges, side to side */
 static const int16_t CZ7b[][5] = {{5, 86, 104, 68, 42}};
 static const int16_t CP6[][2] = {{16, 34}, {224, 34}, {224, 232}, {150, 232}, {150, 110}, {16, 110}};   /* an L */
@@ -105,7 +106,6 @@ static const int16_t KP6[][2] = {{16, 34}, {224, 34}, {224, 232}, {136, 232}, {1
 static const int16_t KB6[][2] = {{180, 176}};
 static const int16_t KZ7[][5] = {{4, 16, 78, 208, 24}, {4, 16, 128, 208, 24}};
 static const int16_t KW7[][4] = {{16, 120, 160, 120}, {80, 70, 224, 70}};   /* the steps' landings */
-static const int16_t KB7[][2] = {{70, 186}};
 static const int16_t KW8[][4] = {{40, 142, 96, 142}, {144, 142, 200, 142}};
 static const int16_t KB8[][2] = {{80, 84}, {160, 84}};
 static const int16_t KW9[][4] = {{16, 172, 150, 172}, {90, 112, 224, 112}};
@@ -118,7 +118,7 @@ static const gf_hole_t GF_CASTLE[9] = {
     {"THE ARMORY", 3, 56, 214, 200, 66, KP4, GN(KP4), 0, 0, 0, 0, KB4, GN(KB4), 0, 0, 0, 0, 0, 0, 0, 0},
     {"DRAWBRIDGE", 3, 120, 212, 120, 56, GPW, GN(GPW), 0, 0, KZ5, GN(KZ5), 0, 0, 0, 0, 0, 80, 128, 96, 32, 8},
     {"THRONE ROOM", 3, 180, 208, 44, 72, KP6, GN(KP6), 0, 0, 0, 0, KB6, GN(KB6), 0, 0, 0, 0, 0, 0, 0, 0},
-    {"DUNGEON STEPS", 4, 200, 214, 40, 48, GPW, GN(GPW), KW7, GN(KW7), KZ7, GN(KZ7), KB7, GN(KB7), 0, 0, 0, 0, 0, 0, 0, 0},
+    {"DUNGEON STEPS", 4, 200, 214, 40, 48, GPW, GN(GPW), KW7, GN(KW7), KZ7, GN(KZ7), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"TWIN TOWERS", 3, 120, 212, 120, 52, GP3, GN(GP3), KW8, GN(KW8), 0, 0, KB8, GN(KB8), 120, 142, 22, 0, 0, 0, 0, 0},
     {"KING'S HOLE", 4, 200, 212, 120, 50, GPW, GN(GPW), KW9, GN(KW9), KZ9, GN(KZ9), KB9, GN(KB9), 0, 0, 0, 0, 0, 0, 0, 0}};
 #define GF_NCOURSE 3
@@ -134,7 +134,8 @@ typedef struct {
     uint8_t hole, strokes, phase;        /* phase: 0 aiming, 1 rolling, 2 sinking, 3 the hole's card, 4 in the water,
                                           * 5 the round's card, 6 choosing the course */
     uint8_t pick;                        /* the course the chooser is on */
-    uint8_t card[9];
+    uint8_t card[9], card2[9];           /* card2: player 2's (two players: each hole, P1 then P2) */
+    uint8_t who;                         /* whose turn: 0 P1, 1 P2 */
     float x, y, vx, vy, aim, lx, ly;     /* the ball, the aim, where it was putted from */
     uint8_t charging, armed, bounces, lipped;
     uint32_t charge_at, phase_at, last, hit_at, wall_at, still_at, roll_at, tick_at, intro_at, flag_at;
@@ -150,6 +151,8 @@ static uint32_t gf_best;                 /* the best round: strokes */
 #define gf (*(gf_t *)g_arena)
 _Static_assert(sizeof(gf_t) <= sizeof g_arena, "gf: the arena is too small");
 static const gf_hole_t *gf_h(void) { return &GF_COURSE[gf_course][gf.hole]; }
+static int gf_two(void) { return players == 2; }   /* two players, taking each hole in turn (Nick, 19 Nov 2026) */
+static uint8_t *gf_card(void) { return gf.who ? gf.card2 : gf.card; }   /* the card of whoever's playing */
 
 static void gf_sounds(void)
 {
@@ -317,6 +320,8 @@ static void gf_start_hole(void)
         itos(gf.hole + 1, hs + 5);
         juice_pop(120, 96, hs, C_CYAN);
         juice_text(120, 130, h->name, C_YEL);
+        if (gf_two())
+            juice_text(120, 150, gf.who ? "PLAYER 2" : "PLAYER 1", gf.who ? C_PINK : C_CYAN);
     }
     k_on(0, h_note(1) + 12, 80, GF_CUP, 0.6f);
     k_on(k_at(0.12f), h_note(3) + 12, 80, GF_CUP, 0.6f);
@@ -325,8 +330,9 @@ static void gf_begin(void)               /* the chosen course, from its first ho
 {
     int i;
     gf.hole = 0;
+    gf.who = 0;
     for (i = 0; i < 9; i++)
-        gf.card[i] = 0;
+        gf.card[i] = gf.card2[i] = 0;
     gf.last = 0;
     gf_start_hole();
 }
@@ -431,7 +437,7 @@ static void gf_sink(void)
     gf.phase = 2;
     gf.phase_at = now;
     gf.flag_at = now | 1u;
-    gf.card[gf.hole] = gf.strokes;
+    gf_card()[gf.hole] = gf.strokes;
     juice_freeze(120);
     juice_flash(RGB(255, 255, 255), 170, 300);
     juice_shake(7, 400);
@@ -583,7 +589,7 @@ static void gf_step(float h)             /* one small step of the rolling ball *
             gf.phase = 0;
             gf.armed = 0;
             if (gf.strokes >= GF_MAXSHOTS) {   /* that's enough: picked up */
-                gf.card[gf.hole] = (uint8_t)(gf_h()->par + 4);
+                gf_card()[gf.hole] = (uint8_t)(gf_h()->par + 4);
                 gf.phase = 3;
                 gf.phase_at = now;
                 juice_pop(120, 110, "PICKED UP", C_PINK);
@@ -635,14 +641,19 @@ static void gf_nav(int dx, int dy, int sel)
     if (!sel)
         return;
     if (gf.phase == 3 && plat_ms() - gf.phase_at > 900u) {   /* the next hole, or the round's card */
-        if (gf.hole < 8) {
+        if (gf_two() && gf.who == 0) {    /* two players: P2 plays the same hole */
+            gf.who = 1;
+            gf_start_hole();
+        } else if (gf.hole < 8) {
+            gf.who = 0;
             gf.hole++;
             gf_start_hole();
         } else {
             int i, tot = 0;
+            gf.who = 0;
             for (i = 0; i < 9; i++)
                 tot += gf.card[i];
-            if (!gf_cbest[gf_course] || (uint32_t)tot < gf_cbest[gf_course])
+            if (!gf_two() && (!gf_cbest[gf_course] || (uint32_t)tot < gf_cbest[gf_course]))
                 gf_cbest[gf_course] = (uint32_t)tot;
             gf_best = gf_cbest[gf_course];
             gf.phase = 5;
@@ -661,7 +672,7 @@ static void gf_tick(void)
     int i, n, pull = HELD_S || HELD_D;
     if (gf.phase == 6)                   /* (choosing the course: nothing rolls) */
         return;
-    if (gf.phase == 2 && now - gf.phase_at > (gf.card[gf.hole] == 1 ? 2600u : 1700u)) {   /* sunk: the card */
+    if (gf.phase == 2 && now - gf.phase_at > (gf_card()[gf.hole] == 1 ? 2600u : 1700u)) {   /* sunk: the card */
         gf.phase = 3;
         gf.phase_at = now;
         juice_calm();
@@ -673,7 +684,7 @@ static void gf_tick(void)
         gf.armed = 0;
         juice_ring((int32_t)gf.x, (int32_t)gf.y, 16, C_CYAN, 250);
         if (gf.strokes >= GF_MAXSHOTS) { /* that's enough: picked up */
-            gf.card[gf.hole] = (uint8_t)(gf_h()->par + 4);
+            gf_card()[gf.hole] = (uint8_t)(gf_h()->par + 4);
             gf.phase = 3;
             gf.phase_at = now;
             juice_pop(120, 110, "PICKED UP", C_PINK);
@@ -972,76 +983,87 @@ static void gf_scene(void)
         } else if (gf.phase != 3 && gf.phase != 5)
             gf_ball((int32_t)gf.x, (int32_t)gf.y, gf.hit_at && ms - gf.hit_at < 70u);
     }
-    tcpy(s, "HOLE ");
+    tcpy(s, gf_two() ? (gf.who ? "P2  HOLE " : "P1  HOLE ") : "HOLE ");
     itos(gf.hole + 1, n);
     tcat(s, n);
-    tcat(s, "  PAR ");
-    itos(h->par, n);
-    tcat(s, n);
+    if (!gf_two()) {
+        tcat(s, "  PAR ");
+        itos(h->par, n);
+        tcat(s, n);
+    }
     tcat(s, "  SHOT ");
     itos(gf.strokes + (gf.phase == 0 ? 1 : 0), n);
     tcat(s, n);
     header("GOLF", C_CYAN, "", C_PINK, gf.phase == 6 ? "" : s);
     if (gf.phase == 3) {                 /* the hole's card */
-        int d = (int)gf.card[gf.hole] - (int)h->par;
+        int d = (int)gf_card()[gf.hole] - (int)h->par;
         cv_rect(40, 84, 160, 76, C_BG);
         frame_rect(40, 84, 160, 76, d < 0 ? C_YEL : d == 0 ? C_CYAN : C_PINK);
         text_c(120, 90, &FONT_B, h->name, C_INK);
         tcpy(s, "");
-        itos(gf.card[gf.hole], n);
+        itos(gf_card()[gf.hole], n);
         tcat(s, n);
-        tcat(s, gf.card[gf.hole] == 1 ? " STROKE" : " STROKES");
+        tcat(s, gf_card()[gf.hole] == 1 ? " STROKE" : " STROKES");
         text_c(120, 114, &FONT_M, s, d < 0 ? C_YEL : d == 0 ? C_CYAN : C_PINK);
-        text_c(120, 142, &FONT_T, gf.hole < 8 ? "TOP KEY: NEXT HOLE" : "TOP KEY: THE CARD", C_GHOST);
-    } else if (gf.phase == 5) {          /* the round's card */
-        int tot = 0, par = 0, k;
+        text_c(120, 142, &FONT_T, gf_two() && gf.who == 0 ? "TOP KEY: PLAYER 2" : gf.hole < 8 ? "TOP KEY: NEXT HOLE"
+                                                                                             : "TOP KEY: THE CARD",
+               C_GHOST);
+    } else if (gf.phase == 5) {          /* the round's card (two players: a row each, the lower total wins) */
+        int tot = 0, tot2 = 0, par = 0, k;
         cv_rect(14, 40, 212, 170, C_BG);
         frame_rect(14, 40, 212, 170, C_YEL);
         text_c(120, 46, &FONT_M, "THE CARD", C_YEL);
         for (k = 0; k < 9; k++) {
-            int32_t x = 24 + k * 22, d = (int32_t)gf.card[k] - (int32_t)GF_COURSE[gf_course][k].par;
+            int32_t x = 24 + k * 22, pk = GF_COURSE[gf_course][k].par, d = (int32_t)gf.card[k] - pk,
+                    d2 = (int32_t)gf.card2[k] - pk;
             itos(k + 1, n);
-            text_c(x + 8, 80, &FONT_T, n, C_GHOST);
+            text_c(x + 8, 76, &FONT_T, n, C_GHOST);
             itos(gf.card[k], n);
-            text_c(x + 8, 96, &FONT_XS, n, d < 0 ? C_YEL : d == 0 ? C_CYAN : C_PINK);
+            text_c(x + 8, 90, &FONT_XS, n, d < 0 ? C_YEL : d == 0 ? C_CYAN : C_PINK);
+            if (gf_two()) {
+                itos(gf.card2[k], n);
+                text_c(x + 8, 108, &FONT_XS, n, d2 < 0 ? C_YEL : d2 == 0 ? C_CYAN : C_PINK);
+            }
             tot += gf.card[k];
-            par += GF_COURSE[gf_course][k].par;
+            tot2 += gf.card2[k];
+            par += pk;
         }
-        tcpy(s, "TOTAL ");
-        itos(tot, n);
-        tcat(s, n);
-        tcat(s, tot < par ? "  UNDER PAR!" : tot == par ? "  EVEN" : "  OVER PAR");
-        text_c(120, 128, &FONT_B, s, tot <= par ? C_YEL : C_INK);
-        tcpy(s, "BEST ");
-        itos((int32_t)gf_best, n);
-        tcat(s, n);
-        text_c(120, 160, &FONT_XS, s, C_CYAN);
+        if (gf_two()) {
+            tcpy(s, "P1 ");
+            itos(tot, n);
+            tcat(s, n);
+            tcat(s, "   P2 ");
+            itos(tot2, n);
+            tcat(s, n);
+            text_c(120, 134, &FONT_B, s, C_INK);
+            text_c(120, 156, &FONT_M, tot < tot2 ? "P1 WINS!" : tot2 < tot ? "P2 WINS!" : "A TIE!",
+                   tot < tot2 ? C_CYAN : tot2 < tot ? C_PINK : C_YEL);
+        } else {
+            tcpy(s, "TOTAL ");
+            itos(tot, n);
+            tcat(s, n);
+            tcat(s, tot < par ? "  UNDER PAR!" : tot == par ? "  EVEN" : "  OVER PAR");
+            text_c(120, 128, &FONT_B, s, tot <= par ? C_YEL : C_INK);
+            tcpy(s, "BEST ");
+            itos((int32_t)gf_best, n);
+            tcat(s, n);
+            text_c(120, 160, &FONT_XS, s, C_CYAN);
+        }
         text_c(120, 186, &FONT_T, "TOP KEY: NEW COURSE   HOME: MENU", C_GHOST);
     } else if (gf.phase == 6) {          /* the course chooser: three courses, nine holes each */
         int k;
-        cv_rect(24, 52, 192, 150, C_BG);
+        cv_rect(24, 52, 192, 150, C_BG);  /* the title and the three names (Nick, 19 Nov 2026: the small print
+                                          * couldn't be read) */
         frame_rect(24, 52, 192, 150, C_YEL);
-        text_c(120, 58, &FONT_M, "CHOOSE A COURSE", C_YEL);
+        text_c(120, 60, &FONT_M, "CHOOSE A COURSE", C_YEL);
         for (k = 0; k < GF_NCOURSE; k++) {
-            int32_t y = 88 + k * 34, par = 0, j, on = k == gf.pick;
-            for (j = 0; j < 9; j++)
-                par += GF_COURSE[k][j].par;
+            int32_t y = 100 + k * 34, on = k == gf.pick;
             if (on) {
-                cv_rect(32, y - 3, 176, 30, mix565(C_BG, GF_TURF[k][0], 90));
-                frame_rect(32, y - 3, 176, 30, C_YEL);
+                cv_rect(32, y - 6, 176, 28, mix565(C_BG, GF_TURF[k][0], 90));
+                frame_rect(32, y - 6, 176, 28, C_YEL);
             }
             text_c(120, y, &FONT_B, GF_CNAME[k], on ? C_INK : C_GHOST);
-            tcpy(s, "9 HOLES  PAR ");
-            itos(par, n);
-            tcat(s, n);
-            if (gf_cbest[k]) {
-                tcat(s, "  BEST ");
-                itos((int32_t)gf_cbest[k], n);
-                tcat(s, n);
-            }
-            text_c(120, y + 15, &FONT_XS, s, on ? GF_TURF[k][0] : C_GHOST);
         }
-        text_c(120, 192, &FONT_T, "UP DOWN: COURSE   TOP KEY: PLAY", C_GHOST);
     } else if (gf.phase == 0 && !gf.charging && gf.strokes == 0 && gf.hole == 0 && ms - gf.intro_at > 1800u)
         text_c(120, 226, &FONT_T, "LEFT RIGHT: AIM   HOLD TOP KEY: PUTT", RGB(225, 250, 225));
 }

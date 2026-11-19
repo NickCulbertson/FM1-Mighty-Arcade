@@ -46,9 +46,18 @@ int main(int argc, char **argv)
     assert(bbox.level == 0 && bbox.nballs == 1 && !bbox.exit_on && !bx_obstacles());
     bbox.safe_until = now_ms + 60000;
     run_ms(11500);
-    assert(bbox.nballs == 2 && !bbox.exit_on);
-    run_ms(10500);
-    assert(bbox.nballs == 3 && bbox.exit_on);  /* real scheduler, not a forced spawn */
+    assert(bbox.nballs == 1 && !bbox.exit_on);   /* no star caught: no new ball, no exit */
+    for (int k = 0; k < 2; k++) {              /* level 1: two stars; each brings a ball, the second opens the exit */
+        for (int i = 0; i < 400 && !bbox.star_on; i++) step_dodge();
+        assert(bbox.star_on);
+        bbox.px = bbox.sx; bbox.py = bbox.sy; bbox.pvx = bbox.pvy = 0;
+        step_dodge();
+        assert(bbox.stars == k + 1);
+    }
+    assert(bbox.nballs == 2 && bbox.exit_on);
+    /* a hit before the exit opens loses the stars caught */
+    { uint8_t lv = (uint8_t)bbox.level; bbox.level = 1; bx_start_level(); bbox.stars = 2; bx_hurt(-1);
+      assert(bbox.stars == 0); bbox.level = lv; bx_start_level(); bbox.stars = 2; bx_open_exit(); }
     picture(out, "dodge-exit");
     bx_hurt(0);
     assert(bbox.exit_on && bbox.level == 0 && bbox.nballs == 1);
@@ -69,7 +78,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 60; i++) step_dodge();
     assert(bbox.px <= 54.1f && bx_clear_spot(bbox.px,bbox.py,BX_ME - 0.01f));
     ui.keys = 0;
-    for (int level = 0; level < 12; level++) {
+    for (int level = 0; level < 13; level++) {   /* the twelve, and the end */
         bbox.level = (uint16_t)level; bx_start_level();
         assert(bx_clear_spot(120,128,BX_ME + 1)); check_routes();
         bbox.safe_until = now_ms + 100000;
@@ -78,7 +87,27 @@ int main(int argc, char **argv)
             assert(bx_clear_spot(bbox.sx,bbox.sy,BX_ME + 4));
         }
     }
-    bbox.level = 4; bx_start_level(); picture(out, "dodge-level5");
+    /* Level 4's spike hits you (and knocks you off it); level 7's conveyor pushes you left */
+    bbox.level = 3; bx_start_level(); bbox.safe_until = now_ms;
+    bbox.px = 120; bbox.py = 74 + 12; bbox.pvx = bbox.pvy = 0; ui.keys = 0;
+    { uint32_t hurt0 = bbox.hurt_at; step_dodge(); assert(bbox.hurt_at != hurt0 && bbox.pvy > 0); }
+    bbox.level = 6; bx_start_level(); bbox.safe_until = now_ms + 100000;
+    bbox.px = 150; bbox.py = 165; bbox.pvx = bbox.pvy = 0; ui.keys = 0;
+    for (int i = 0; i < 30; i++) step_dodge();
+    assert(bbox.px < 140 && bbox.pvx < 0);
+    /* Past the last: the end. Five balls, nothing can hurt you, and it stays there */
+    bbox.level = 11; bx_start_level(); bx_next_level();
+    assert(bbox.level == 12 && bbox.nballs == 5 && !bx_obstacles() && !bx_nhaz() && !bx_nbelt() && !bbox.exit_on);
+    { uint32_t h0 = bbox.hurt_at; bbox.px = bbox.b[0].x; bbox.py = bbox.b[0].y; step_dodge();
+      assert(bbox.hurt_at == h0 && bbox.nballs == 5); }
+    bx_next_level(); assert(bbox.level == 12);
+    picture(out, "dodge-end");
+    for (int level = 0; level < 12; level++) {   /* a picture of each */
+        char nm[32];
+        bbox.level = (uint16_t)level; bx_start_level();
+        snprintf(nm, sizeof nm, "dodge-level%d", level + 1);
+        picture(out, nm);
+    }
     enter(M_MENU); enter(M_BOUNCE);
     assert(bbox.level == 0 && bbox.score == 0 && !bbox.exit_on);
 

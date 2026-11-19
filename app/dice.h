@@ -224,7 +224,7 @@ static void dc_make(const dc_roll_t *r)
         dgen.dly_beats = DB[dc_r() % 6u];
         dgen.dly_fb = (float)dc_in(15, room >= 8u ? 70 : 50) / 100.0f;
         dgen.dly_mix = dc_pc(c == DK_PADS ? 40u : 60u) ? (float)dc_in(8, 35) / 100.0f : 0.0f;
-        dgen.dly_width = (float)dc_in(40, 100) / 100.0f;
+        dgen.dly_width = (float)dc_in(20, 60) / 100.0f;   /* (was 40 .. 100: narrower, Nick, 19 Nov 2026) */
         dgen.rev_mix = room < 2u ? 0.04f : room < 7u ? (float)dc_in(10, 25) / 100.0f : (float)dc_in(25, 45) / 100.0f;
         dgen.rev_secs = room < 7u ? 0.8f + 2.0f * (float)(dc_r() % 100u) / 100.0f
                                 : 3.0f + 9.0f * (float)(dc_r() % 100u) / 100.0f;

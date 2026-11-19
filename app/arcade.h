@@ -22,12 +22,14 @@
 #define PAD_D 2u
 #define PAD_R 4u
 #define PAD_S0 24u                       /* F5 */
+#define PAD_S1 26u                       /* G5: CUBES' drop, the second button on the right */
 #define PAD_SEL_KEYS (1u << PAD_S0)
 #define HELD_L ((ui.keys >> PAD_L) & 1u)
 #define HELD_R ((ui.keys >> PAD_R) & 1u)
 #define HELD_U ((ui.keys >> PAD_U) & 1u)
 #define HELD_D ((ui.keys >> PAD_D) & 1u)
 #define HELD_S ((ui.keys & PAD_SEL_KEYS) != 0u)
+#define HELD_S1 ((ui.keys >> PAD_S1) & 1u)   /* G5, the second button on the right */
 static uint32_t arc_dt(uint32_t *last)   /* ms since the last frame, at most 40 (a stall never jumps far) */
 {
     uint32_t ms = plat_ms(), d = *last ? ms - *last : 16u;
@@ -349,7 +351,11 @@ static void br_tick(void)
             float rel = (br.bx - br.px) / (w / 2.0f), s = br_speed();
             br.vx = s * 0.85f * fm_clampf(rel, -1.0f, 1.0f);
             br.vy = -fm_sqrtf(s * s - br.vx * br.vx);
-            k_on(0, h_bass() + 12, 90, NA_BASS, 0.2f);
+            {                            /* the paddle: the bricks' own sound, a new tone of the chord
+                                          * each hit, up and round (Nick, 19 Nov 2026) */
+                static uint8_t pn;
+                k_on(0, h_tone(1 + pn++ % 6u), 90, NA_HIT, 0.3f);
+            }
             br.combo = 0;
             br.squash_at = plat_ms() | 1u;
             juice_burst((int32_t)br.bx, 226, 4, 1, C_CYAN, C_INK, 0);
@@ -367,7 +373,7 @@ static void br_tick(void)
             br.combo = 0;
             br.wide_until = br.slow_until = 0;
             if (br.lives > 1)
-                juice_pop(120, 150, "OUCH!", C_PINK);
+                juice_pop(120, 150, oops_word(), C_PINK);
             if (--br.lives == 0) {
                 if (br.score > br_best)
                     br_best = br.score;
@@ -532,6 +538,9 @@ typedef struct {
     float x, y, vx, vy, ox, oy;          /* where; its post in the swarm (from the swarm's middle) */
     uint8_t on, kind, note, step;        /* step: a sentinel's post this beat */
     float hx, hy;                        /* a sentinel's hold */
+    uint8_t dive;                        /* diving at you (on the beat, out of the swarm and back: Nick, 19 Nov 2026) */
+    uint32_t dive_at;
+    float dx0, dy0, dtx;                 /* where it dove from, where at */
 } sw_bug_t;
 typedef struct {
     float x, y, vx, vy;
@@ -555,7 +564,13 @@ typedef struct {
     uint8_t mq_w, mq_r;
     uint32_t burst_at[3];                /* a sentinel's burst still to come (ms), its x */
     float burst_x[3], burst_y[3];
+    uint8_t pu_on, pu_kind, pow;         /* a power-up falling (its kind); the power you have (1 DOUBLE, 2 RAPID) */
+    float pu_x, pu_y;
+    uint32_t pow_until;
+    uint16_t beats;
 } sw_t;
+#define SW_DIVE_MS 1800u                 /* a dive: down at you and back up to its post */
+#define SW_POW_MS 9000u                  /* a power lasts this long */
 static uint32_t sw_best;
 #define sw (*(sw_t *)g_arena)
 _Static_assert(sizeof(sw_t) <= sizeof g_arena, "sw: the arena is too small");
@@ -590,6 +605,7 @@ static void sw_wave(void)                /* a new swarm: its droids warp in at t
                                                   : (int)((kr() >> 16) % SW_NKIND));
         b->note = (uint8_t)(2 + (kr() >> 16) % 10u);
         b->step = 0;
+        b->dive = 0;
     }
     sw.n_alive = sw.nbugs;
     sw.cx = 112.0f, sw.cy = 70.0f, sw.ph = 0.0f;
@@ -627,6 +643,7 @@ static void sw_new(void)
     for (k = 0; k < SW_SLOTS; k++)
         sw.jar[k] = 0, sw.seq_ms[k] = sw.jar_ms[k] = 0;
     sw.jnext = 0;
+    sw.pu_on = 0, sw.pow = 0, sw.beats = 0;
     sw_wave();
 }
 /* the music: the jar is the sequence. A playhead walks its eight slots, an eighth each, each playing its droid's note on
@@ -667,8 +684,19 @@ static void sw_catch(int k)              /* droid k hit: up into the jar */
     sw.n_alive--;
     sw.catches++;
     sw.streak = (uint8_t)(sw.streak < 99 ? sw.streak + 1 : 99);
-    pts = 10u * (1u + sw.streak / 4u) * (1u + sw.wave) * (b->kind == 1 ? 2u : 1u);   /* (a gunship: double) */
+    pts = 10u * (1u + sw.streak / 4u) * (1u + sw.wave) * (b->kind == 1 ? 2u : 1u) * (b->dive ? 3u : 1u);   /* (a
+                                          * gunship: double; one caught mid-dive: triple) */
     sw.score += pts;
+    if (b->dive) {
+        juice_pop((int32_t)fm_clampf(b->x + 8.0f, 60.0f, 180.0f), (int32_t)b->y - 6, "NICE SHOT!", C_YEL);
+        juice_kick(0, -3);
+    }
+    if (!sw.pu_on && !sw.pow && (kr() >> 16) % 100u < 14u) {   /* now and then it drops a power-up */
+        sw.pu_on = 1;
+        sw.pu_kind = (uint8_t)((kr() >> 16) % 2u);
+        sw.pu_x = b->x + 8.0f, sw.pu_y = b->y + 8.0f;
+    }
+    b->dive = 0;
     for (f = 0; f < 4 && sw.fly_at[f]; f++)
         ;
     if (f < 4) {
@@ -702,6 +730,14 @@ static void sw_nav(int dx, int dy, int sel)
     }
     if (!sel)
         return;
+    if (sw.pow == 1 && sw.shy[0] < 0.0f && sw.shy[1] < 0.0f) {   /* DOUBLE: a pair, side by side */
+        sw.shx[0] = sw.px - 6.0f, sw.shx[1] = sw.px + 6.0f;
+        sw.shy[0] = sw.shy[1] = sw.py - 4.0f;
+        sw.shot_at = plat_ms() | 1u;
+        k_on(0, 96, 56, NA_HAT, 0.03f);
+        juice_burst((int32_t)sw.px, (int32_t)sw.py - 4, 5, 1, C_YEL, C_INK, 0);
+        return;
+    }
     for (k = 0; k < 2; k++)              /* a shot (two at most in the air) */
         if (sw.shy[k] < 0.0f) {
             sw.shx[k] = sw.px, sw.shy[k] = sw.py - 4.0f;
@@ -724,7 +760,7 @@ static void sw_hurt(void)
         if (sw.score > sw_best)
             sw_best = sw.score;
     } else
-        juice_pop(120, 150, "HIT!", C_PINK);
+        juice_pop(120, 150, oops_word(), C_PINK);
 }
 static void sw_fire_one(float x, float y, float vx, float vy, int kind)   /* a droid's shot */
 {
@@ -790,6 +826,25 @@ static void sw_tick(void)
                                           * now and then a shot on a beat, not a hail: Nick, 17 Nov 2026) */
         sw.mq_r++;
         sw.frame ^= 1u;
+        sw.beats++;
+        if (ms - sw.wave_at > 2000u && sw.beats % 8u == 0u && sw.n_alive) {   /* every two bars, on the beat: a dive */
+            int diving = 0, most = 1 + sw.wave / 2, pick;
+            for (k = 0; k < SW_NB; k++)
+                diving += sw.b[k].on && sw.b[k].dive;
+            pick = (int)((kr() >> 16) % sw.n_alive);
+            for (k = 0; k < SW_NB && diving < most; k++)
+                if (sw.b[k].on && pick-- == 0 && !sw.b[k].dive) {
+                    sw_bug_t *b = &sw.b[k];
+                    b->dive = 1, b->dive_at = ms;
+                    b->dx0 = b->x, b->dy0 = b->y;
+                    b->dtx = fm_clampf(sw.px - 8.0f, 10.0f, 214.0f);
+                    k_on(0, h_tone(8) + 12, 70, NA_HIT, 0.2f);   /* its cry, down the chord */
+                    k_on(k_at(0.12f), h_tone(5) + 12, 60, NA_HIT, 0.2f);
+                    k_on(k_at(0.24f), h_tone(2) + 12, 50, NA_HIT, 0.3f);
+                    juice_ring((int32_t)b->x + 8, (int32_t)b->y + 7, 18, SW_KLIGHT[b->kind], 200);
+                    break;
+                }
+        }
         for (k = 0; k < SW_NB; k++)
             if (sw.b[k].on && sw.b[k].kind == 4) {   /* a sentinel: its next post, a jump on the beat */
                 sw_bug_t *b = &sw.b[k];
@@ -821,6 +876,25 @@ static void sw_tick(void)
         float tt = (float)ms * 0.001f + (float)k;
         if (!b->on)
             continue;
+        if (b->dive) {                   /* diving: down at where you were, a swing to the side, and back up */
+            float u = (float)(ms - b->dive_at) / (float)SW_DIVE_MS, arc;
+            if (u >= 1.0f) {
+                b->dive = 0;
+            } else {
+                arc = fm_sinf(u * 3.1415927f);
+                b->x = b->dx0 + (b->dtx - b->dx0) * arc + 26.0f * fm_sinf(u * 6.2831853f);
+                b->y = b->dy0 + ((float)SW_SHIP_Y - 6.0f - b->dy0) * arc;
+                b->vx = b->vy = 0.0f;
+                if (fm_fabsf(b->x + 8.0f - sw.px) < 11.0f && fm_fabsf(b->y + 7.0f - (sw.py + 8.0f)) < 11.0f &&
+                    (int32_t)(ms - sw.hurt_until) >= 0) {   /* it got you: on up it goes */
+                    b->dive_at = ms - (uint32_t)((1.0f - u) * (float)SW_DIVE_MS);
+                    sw_hurt();
+                    if (sw.over)
+                        return;
+                }
+                continue;
+            }
+        }
         switch (b->kind) {
         case 0: tx += 18.0f * fm_sinf(tt * 6.0f), ty += 6.0f * fm_cosf(tt * 4.0f), top = sp * 3.0f; break;   /* weaves */
         case 1: tx += 3.0f * fm_sinf(tt), top = sp * 1.2f; break;                                       /* lumbers */
@@ -853,10 +927,25 @@ static void sw_tick(void)
                 return;
         }
     }
+    if (sw.pow && (int32_t)(ms - sw.pow_until) >= 0)
+        sw.pow = 0;
+    if (sw.pu_on) {                      /* a power-up falling: catch it */
+        sw.pu_y += 0.05f * f;
+        if (fm_fabsf(sw.pu_x - sw.px) < 13.0f && fm_fabsf(sw.pu_y - (sw.py + 8.0f)) < 13.0f) {
+            sw.pu_on = 0;
+            sw.pow = (uint8_t)(sw.pu_kind + 1);
+            sw.pow_until = ms + SW_POW_MS;
+            juice_pop(120, 150, sw.pow == 1 ? "DOUBLE SHOT!" : "RAPID FIRE!", C_YEL);
+            juice_ring((int32_t)sw.px, (int32_t)sw.py + 8, 40, C_YEL, 400);
+            juice_flash(RGB(255, 210, 63), 80, 250);
+            juice_sting(1);
+        } else if (sw.pu_y > 240.0f)
+            sw.pu_on = 0;
+    }
     for (k = 0; k < 2; k++)              /* your shots: up, and into a droid */
         if (sw.shy[k] >= 0.0f) {
             int j2;
-            sw.shy[k] -= 0.36f * f;
+            sw.shy[k] -= (sw.pow == 2 ? 0.66f : 0.36f) * f;   /* (RAPID: quicker, so the next is sooner) */
             if (sw.shy[k] < (float)SW_JAR_Y + 20.0f) {   /* a miss: the streak ends */
                 sw.shy[k] = -1.0f;
                 sw.streak = 0;
@@ -954,8 +1043,20 @@ static void sw_scene(void)
                 if ((wq / 60u) & 1u)
                     continue;
             }
-            sw_droid(b->kind, (int32_t)b->x, (int32_t)b->y, ms, k, 0);
+            if (b->dive) {               /* diving: a streak of its light behind it */
+                int j;
+                for (j = 1; j <= 3; j++)
+                    disc((int32_t)b->x + 8, (int32_t)b->y + 7 - j * 5, 5 - j, mix565(C_BG, SW_KLIGHT[b->kind], 140 - 35 * j));
+            }
+            sw_droid(b->kind, (int32_t)b->x, (int32_t)b->y, ms, k, b->dive && (ms / 80u) & 1u);
         }
+    }
+    if (sw.pu_on) {                      /* a power-up: a capsule, spinning its letter */
+        int32_t x = (int32_t)sw.pu_x, y = (int32_t)sw.pu_y;
+        uint16_t c = sw.pu_kind ? C_PINK : C_YEL;
+        disc(x, y, 9, mix565(C_BG, c, 90 + (int32_t)((ms / 60u) % 4u) * 30));
+        disc(x, y, 6, c);
+        text_c(x, y - 6, &FONT_T, sw.pu_kind ? "R" : "D", C_BG);
     }
     for (k = 0; k < 2; k++)              /* your shots: a hot core, a glow, a trail */
         if (sw.shy[k] >= 0.0f) {
@@ -980,6 +1081,12 @@ static void sw_scene(void)
     }
     if (!sw.over && !((int32_t)(ms - sw.hurt_until) < 0 && (ms / 100u) & 1u)) {   /* you: a rocket (it blinks, hurt) */
         int32_t x = (int32_t)sw.px, kick = sw.shot_at && ms - sw.shot_at < 80u ? 2 : 0, l = sw.lean, y = (int32_t)sw.py;
+        if (sw.pow) {                    /* a power: a glow round you, and its time running out under you */
+            uint32_t left = sw.pow_until - ms;
+            uint16_t pc = sw.pow == 1 ? C_YEL : C_PINK;
+            disc(x, y + 9, 13, mix565(C_BG, pc, 50 + (int32_t)((ms / 90u) % 3u) * 20));
+            cv_rect(x - 12, y + 24, (int32_t)(24u * left / SW_POW_MS), 2, pc);
+        }
         int32_t fl = 3 + (int32_t)((ms / 40u) % 3u) + (HELD_U ? 3 : 0);
         cv_rect(x - 2, y + 14 + kick, 5, fl, (ms / 50u) & 1u ? C_YEL : RGB(255, 150, 60));   /* the flame */
         cv_rect(x - 1, y + 14 + kick, 3, fl - 1, C_INK);

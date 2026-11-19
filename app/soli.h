@@ -301,12 +301,9 @@ static void so_select(void)
             return;
         }
     }
-    k_on(0, 41, 80, SS_NO, 0.12f);
-    juice_shake(3, 200);
-    juice_kick(-8, 0);                   /* a head shake: no */
-    juice_flash(RGB(255, 40, 80), 50, 200);
-    J.heat = J.heat > 15 ? J.heat - 15 : 0;
-    app_say("IT DOES NOT", "GO THERE");
+    so.held_area = -1;                   /* it doesn't go there: what's there is taken instead (Nick, 19 Nov 2026:
+                                          * not an error, a change of mind) */
+    so_select();
 }
 
 static void so_nav(int dx, int dy)
@@ -343,11 +340,11 @@ static void so_nav(int dx, int dy)
  * column, by chance, plays its top card on long, reverby keys, the rank its note (A low, K high; now and then an
  * octave up), and between them now and then another card's sparkles; an empty column rests. Under it a slow chord every two bars, a bass note each bar, and the drums: the more cards you have home,
  * the more of the kit comes in, until the end runs double time */
-static const uint8_t SO_TIER_AT[6] = {0, 5, 13, 21, 31, 42};   /* cards home for each tier */
+static const uint8_t SO_TIER_AT[SQ_TOP + 1] = {0, 5, 12, 19, 26, 34, 42};   /* cards home for each tier */
 static int so_home(void) { return so.nf[0] + so.nf[1] + so.nf[2] + so.nf[3]; }
 static int so_tier(void)
 {
-    int k = 5, f = so_home();
+    int k = SQ_TOP, f = so_home();
     while (k > 0 && f < SO_TIER_AT[k])
         k--;
     return k;
@@ -380,7 +377,7 @@ static void so_groove(uint32_t t, uint32_t step)
             k_on(t, so_note(card), 26u + kr() % 16u + (p % 8u == 0u ? 8u : 0u), SS_KEYS, 2.0f);
             so.seq_ms[c] = (ms + (uint32_t)(ahead > 0 ? ahead / 44 : 0)) | 1u;
         }
-    } else if (kr() % 100u < (uint32_t)sq_cfg[SQ_SOLI].chance * (tier >= 5 ? 3u : 1u) / 5u) {   /* between: another card's, softer */
+    } else if (kr() % 100u < (uint32_t)sq_cfg[SQ_SOLI].chance * (tier == SQ_DOUBLE ? 3u : 1u) / 5u) {   /* between: another card's, softer */
         uint8_t card = so_seq_card((int)(kr() % 8u));
         if (card)
             k_on(t, so_note(card) + 12, 16u + kr() % 12u, SS_KEYS, 1.6f);
