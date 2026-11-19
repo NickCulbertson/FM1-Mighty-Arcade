@@ -80,3 +80,12 @@ wait 2000
 key 24 up
 expect af_n >4
 expect sw_pairs >4
+# PINBALL's AUTO FLIP: a ball coming down on the left flipper, it fires on its own
+tap HOME
+expect menu_to_PINBALL 1
+tapkey 24
+wait 300
+expect pb_auto_drop 0
+wait 30
+expect pb_flip0_up 1
+expect pb_auto_off 0

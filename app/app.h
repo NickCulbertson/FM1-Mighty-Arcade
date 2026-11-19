@@ -11,6 +11,7 @@
 #define APP_BLOCK 256u                   /* frames per audio block: 5.8 ms at 44.1 kHz */
 #define APP_TOUCH                        /* velocity and pressure from the keys (lib/touch.h) */
 #define APP_OVERLOAD                     /* the render ran late: app_overload sheds voices */
+#define APP_SPLASH                       /* the boot screen is app_splash's: black, the menu's title (Nick, 19 Nov 2026) */
 
 /* the store: the app's settings (DICE SYNTH's kept sounds) and the panel calibration (the platform's), and their flash
  * offsets */
@@ -25,6 +26,7 @@ void app_frame(void);
 void app_input_only(void);
 void app_say(const char *a, const char *b);
 void app_overload(void);
+void app_splash(void);
 
 #define APP_HOST_EXPECT
 int app_expect(const char *what, int *got);

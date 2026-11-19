@@ -71,7 +71,10 @@ typedef struct {
 static const char *const PB_MON_NAME[PB_NMON] = {"VAMPIRE", "MUMMY", "WEREWOLF", "MONSTER", "LAGOON THING"};
 
 static uint32_t pb_best;
-static uint8_t pb_cam_lock;              /* (a test: the view doesn't follow the ball) */
+static uint8_t pb_cam_lock;
+static uint8_t pb_auto;                  /* AUTO FLIP (ARP): the flippers fire on their own as a ball comes down on
+                                          * them (Nick, 19 Nov 2026: to spare the keys); it lasts between games */
+static uint32_t pb_auto_until[2];         /* each side held by it until then */              /* (a test: the view doesn't follow the ball) */
 #define pb (*(pb_t *)g_arena)
 _Static_assert(sizeof(pb_t) <= sizeof g_arena, "pb: the arena is too small");
 #define SY(wy) ((int32_t)(wy) - pb.camy)   /* world y to the screen's */
@@ -325,7 +328,10 @@ static void pb_boss_hit(void)            /* the boss hit: a blow, its chord tone
             char dn[24];
             tcpy(dn, PB_MON_NAME[pb_mon()]);
             tcat(dn, " DOWN!");
-            juice_pop(120, 96, dn, C_YEL);
+            if (text_w(&FONT_L, dn) > 228)  /* (too wide for the screen: the name small, DOWN! big) */
+                juice_pop(120, 96, "DOWN!", C_YEL), juice_text(120, 136, PB_MON_NAME[pb_mon()], C_YEL);
+            else
+                juice_pop(120, 96, dn, C_YEL);
         }
         pb.boss_lv++;
         pb.boss_ann = 0;
@@ -687,15 +693,35 @@ static void pb_tick(void)
         tcpy(nm, "THE ");
         tcat(nm, PB_MON_NAME[pb_mon()]);
         tcat(nm, "!");
+        if (text_w(&FONT_L, nm) > 228)      /* (too wide: without THE) */
+            tcpy(nm, PB_MON_NAME[pb_mon()]), tcat(nm, "!");
         juice_pop(120, 96, nm, C_PINK);
         k_on(0, h_bass() - 12, 110, PB_BOOM, 1.0f);   /* a low rumble, and its chord, menacing */
         k_on(k_at(0.1f), h_note(1), 90, PB_PAD, 1.6f);
         k_on(k_at(0.1f), h_note(2) + 1, 70, PB_PAD, 1.6f);
         juice_shake(6, 500);
     }
-    keys[0] = HELD_L;
-    keys[1] = HELD_R || HELD_S1;         /* (the right flipper: A3, or G5 under the right hand, so a flipper
-                                          * each side of the controller: Nick, 19 Nov 2026) */
+    if (pb_auto) {                       /* AUTO FLIP: a ball coming down near a flipper, that side fires */
+        int fl, bk;
+        for (bk = 0; bk < PB_NB; bk++) {
+            pb_ball_t *bb = &pb.b[bk];
+            if (!bb->on || bb->lane || bb->held || bb->fly || bb->vy < 0.03f)
+                continue;
+            for (fl = 0; fl < 4; fl++) {
+                float px = PB_FL[fl][0], py = PB_FL[fl][1], L = PB_FL[fl][2], a = PB_FL[fl][3];
+                float tx = px + L * fm_cosf(a), ty = py + L * fm_sinf(a), lx = tx - px, ly = ty - py;
+                float t = ((bb->x - px) * lx + (bb->y - py) * ly) / (lx * lx + ly * ly), dx, dy;
+                t = t < 0.0f ? 0.0f : t > 1.0f ? 1.0f : t;
+                dx = bb->x - (px + t * lx), dy = bb->y - (py + t * ly);
+                if (dy < 2.0f && dx * dx + dy * dy < (PB_R + 9.0f) * (PB_R + 9.0f) && t > 0.25f)   /* above it,
+                                          * on its outer part: the sweet spot */
+                    pb_auto_until[fl & 1] = now + 160u;
+            }
+        }
+    }
+    keys[0] = HELD_L || (pb_auto && (int32_t)(now - pb_auto_until[0]) < 0);
+    keys[1] = HELD_R || HELD_S1 || (pb_auto && (int32_t)(now - pb_auto_until[1]) < 0);   /* (the right flipper: A3,
+                                          * or G5 under the right hand, so a flipper each side: Nick, 19 Nov 2026) */
     for (k = 0; k < 2; k++)              /* a flipper's key: a click, the flipper's sound */
         if (keys[k] && !pb.flip_at[k]) {
             pb.flip_at[k] = now | 1u;
@@ -1334,7 +1360,8 @@ static void pb_scene(void)
         float a = pb.ang[i], L = PB_FL[i][2];
         int32_t px = (int32_t)PB_FL[i][0], py = SY(PB_FL[i][1]);
         int32_t tx = px + (int32_t)(L * fm_cosf(a)), ty = py + (int32_t)(L * fm_sinf(a));
-        int up = pb.w[i] != 0.0f || (i & 1 ? HELD_R || HELD_S1 : HELD_L);
+        int up = pb.w[i] != 0.0f || (i & 1 ? HELD_R || HELD_S1 : HELD_L) ||
+                 (pb_auto && (int32_t)(ms - pb_auto_until[i & 1]) < 0);
         pb_thick(px + 1, py + 2, tx + 1, ty + 2, 3, RGB(4, 2, 10));
         pb_thick(px, py, tx, ty, 3, RGB(30, 30, 50));
         pb_thick(px, py, tx, ty, 2, up ? C_INK : RGB(170, 180, 200));

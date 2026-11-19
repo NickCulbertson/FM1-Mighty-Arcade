@@ -1230,6 +1230,10 @@ static void input(void)
         enter(M_MENU);
         app_say("MENU", "");
     }
+    if (pressed >> B_ARP & 1u && mode == M_PINBALL) {   /* PINBALL: AUTO FLIP on and off */
+        pb_auto ^= 1u;
+        app_say("AUTO FLIP", pb_auto ? "ON" : "OFF");
+    }
     if (pressed >> B_PLAY & 1u && mode == M_SOLI) {
         so_deal();
         app_say("NEW", "DEAL");
@@ -1409,7 +1413,7 @@ static void input(void)
                                           * half lit otherwise, so it stands out from the unused ones */
         if (mode != M_CHESS)
             plat_leds((mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
-                      btn) | (help_on ? hb : 0u), lit | keys);
+                      (mode == M_PINBALL && pb_auto ? 1u << B_ARP : 0u) | btn) | (help_on ? hb : 0u), lit | keys);
         else
         plat_leds((st.paused ? 0u : 1u << B_PLAY) | 1u << B_HOME | (st.vs ? 1u << B_SEL : 0u) |
                   (st.vs && you.from >= 0 ? 1u << B_OCTDN : 0u) | btn | (help_on ? hb : 0u), lit | keys);
@@ -1972,6 +1976,7 @@ static const help_t HELP_MINES[] = {{"PAD", "MOVE"}, {"F5", "OPEN A SQUARE"}, {"
 static const help_t HELP_GOLF[] = {{"UP DOWN", "PICK A COURSE"}, {"LEFT RIGHT", "AIM (HOLD: FASTER)"},
                                    {"HOLD F5", "POWER, LET GO TO PUTT"}, H_FX, {0, 0}};
 static const help_t HELP_PINBALL[] = {{"LEFT (F3)", "LEFT FLIPPERS"}, {"G5 OR RIGHT", "RIGHT FLIPPERS"},
+                                      {"ARP", "AUTO FLIP ON / OFF"},
                                       {"HOLD F5", "PLUNGER, LET GO TO LAUNCH"}, {"UP", "NUDGE"}, H_FX, {0, 0}};
 static const help_t HELP_BOUNCE[] = {{"PAD", "ROLL THE MARBLE"}, {"K1", "TEMPO"}, {"K2", "SPEED"}, {"K3", "SOUND"},
                                      {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
@@ -2100,6 +2105,22 @@ static void chess_sounds(void)
     k_main_slot = SL_QUEEN;
 }
 
+void app_splash(void)                    /* the boot screen: black, MIGHTY ARCADE as the menu writes it, the tagline */
+{
+    int32_t b;
+    for (b = 0; b < 2; b++) {
+        int32_t wm = text_w(&FONT_L, "MIGHTY"), wa = text_w(&FONT_L, "ARCADE"), x = 120 - (wm + 10 + wa) / 2;
+        cv_begin(240, 120, RGB(0, 0, 0));
+        cv_oy = -120 * b;
+        cv_y0 = 0;
+        cv_y1 = 120;
+        cv_text(x, 92, &FONT_L, "MIGHTY", C_CYAN);
+        cv_text(x + wm + 10, 92, &FONT_L, "ARCADE", C_PINK);
+        text_c(120, 134, &FONT_T, "GAMES THAT MAKE MUSIC", RGB(150, 140, 180));
+        cv_blit(0, (uint32_t)(120 * b));
+    }
+    cv_oy = 0;
+}
 void app_ui_init(void)
 {
     touch_on(1);
@@ -2254,6 +2275,17 @@ int app_expect(const char *what, int *got)
         *got = pb.balls;
     else if (!strcmp(what, "pb_over"))
         *got = pb.over;
+    else if (!strcmp(what, "pb_auto_drop")) {   /* (a test: AUTO FLIP on, a ball dropping onto the left flipper) */
+        pb_auto = 1;
+        pb.b[0].on = 1, pb.b[0].lane = 0, pb.b[0].held = 0, pb.b[0].fly = 0;
+        pb.b[0].x = PB_FL[0][0] + 20.0f, pb.b[0].y = PB_FL[0][1] - 4.0f, pb.b[0].vx = 0.0f, pb.b[0].vy = 0.2f;
+        *got = 0;
+    } else if (!strcmp(what, "pb_flip0_up"))   /* the left flipper well up from rest (1) */
+        *got = pb.ang[0] < PB_FL[0][3] - 0.3f;
+    else if (!strcmp(what, "pb_auto_off")) {
+        pb_auto = 0;
+        *got = 0;
+    }
     else if (!strcmp(what, "pb_boss"))     /* the boss's hit points */
         *got = pb.boss_hp;
     else if (!strncmp(what, "pb_mon_", 7)) {   /* (a test: pb_mon_K_H, monster K at H hit points of 9) */
@@ -2516,6 +2548,10 @@ int app_expect(const char *what, int *got)
         *got = mi.opened;
     else if (!strcmp(what, "mi_over"))
         *got = mi.over;
+    else if (!strcmp(what, "splash")) {   /* (a test: the boot screen, drawn now) */
+        app_splash();
+        *got = 0;
+    }
     else if (!strcmp(what, "mi_press_ahead")) {   /* (a test: a press stamped a ms ahead, as | 1 does at an even
                                           * time on the FM-1, then the tick at once: it must not flag) */
         int x, y, n2 = 0;

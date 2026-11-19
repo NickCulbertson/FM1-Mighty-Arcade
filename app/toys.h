@@ -727,15 +727,16 @@ static void bx_start_level(void)
     {
         char label[20] = "LEVEL ";
         itos(bbox.level + 1, label + 6);
-        static const char *const NEW[6] = {"", "NEW: BUMPERS", "NEW: SPIKES! DON'T TOUCH", "NEW: MOVING SPIKES",
-                                           "NEW: CONVEYORS PUSH YOU", "ALL OF IT, FASTER"};
+        static const char *const NEW[6] = {"", "NEW: BUMPERS", "NEW: SPIKES!", "NEW: MOVING SPIKES", "NEW: CONVEYORS",
+                                           "ALL OF IT, FASTER"};   /* (each within the screen's width) */
         char ex[32];                     /* ("GRAB 4 STARS FOR THE EXIT": 26 with its end) */
         juice_pop(120, 96, label, C_CYAN);
         tcpy(ex, "GRAB ");
         itos(bx_lv()->exit_balls, ex + 5);
-        tcat(ex, " STARS FOR THE EXIT");
+        tcat(ex, " STARS FOR EXIT");
         if (bx_lv()->intro || bbox.level == 0)   /* (what's new, or on the first level what to do; no more than that) */
-            juice_text(120, 132, bx_lv()->intro ? NEW[bx_lv()->intro] : ex, bx_lv()->intro ? C_YEL : C_GHOST);
+            juice_text(120, 172, bx_lv()->intro ? NEW[bx_lv()->intro] : ex, bx_lv()->intro ? C_YEL : C_GHOST);   /* (well
+                                          * under LEVEL n: it rises as it fades, and at 132 it rose into it) */
     }
 }
 static void bx_new(void)

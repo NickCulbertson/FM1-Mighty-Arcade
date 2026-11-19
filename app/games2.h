@@ -591,7 +591,7 @@ static void mi_sounds(void)
 static void mi_scene(void)
 {
     int x, y, flags = 0;
-    char t[16], n[8];
+    char t[32], n[8];                    /* ("FIELD 12  16 BOMBS": 16 was too small, GPT's review 19 Nov 2026) */
     for (y = 0; y < MI_H; y++)
         for (x = 0; x < MI_W; x++)
             flags += mi.flag[y][x];

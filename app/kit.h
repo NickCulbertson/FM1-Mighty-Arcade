@@ -116,7 +116,7 @@ typedef struct {
     int16_t x, y;
     uint8_t life, big;
     uint16_t c;
-    char s[16];
+    char s[28];                          /* (was 16: longer words were cut at 15 letters) */
 } jtext_t;
 #define JR_N 16
 typedef struct {                         /* a shockwave: a ring that grows and fades */
@@ -306,7 +306,7 @@ static void juice_text_(int32_t x, int32_t y, const char *s, uint16_t c, int big
     J.t[k].life = (uint8_t)(big ? 48 : 28);
     J.t[k].big = (uint8_t)big;
     J.t[k].c = c;
-    for (i = 0; i < 15 && s[i]; i++)
+    for (i = 0; i < 27 && s[i]; i++)
         J.t[k].s[i] = s[i];
     J.t[k].s[i] = 0;
 }
