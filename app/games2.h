@@ -524,7 +524,9 @@ static void mi_tick(void)
                     }
                 }
     }
-    if (mi.a_down && !mi.a_flagged && !mi.over && plat_ms() - mi.a_down >= 420u) {
+    if (mi.a_down && !mi.a_flagged && !mi.over && (int32_t)(plat_ms() - mi.a_down) >= 420) {   /* (signed: a_down is
+                                          * stamped | 1, a ms ahead at an even time; unsigned, that read as held for
+                                          * ages and flagged at once, the flag Nick kept getting: 19 Nov 2026) */
         if (!mi.open[mi.cy][mi.cx]) {
             int32_t px = MI_X + mi.cx * MI_C + MI_C / 2, py = MI_Y + mi.cy * MI_C + MI_C / 2;
             mi.flag[mi.cy][mi.cx] ^= 1u;

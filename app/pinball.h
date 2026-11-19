@@ -123,7 +123,7 @@ static void pb_sounds(void)
     k_slot_set(PB_BELL, &KSND[S_CELESTA]);
     k_slot_set(PB_BOOM, &KSND[S_SONAR]);
     k_slot_set(PB_WIN, &KSND[S_TUBE]);
-    k_slot_set(PB_FLIP, &KSND[S_CHIP]);
+    k_slot_set(PB_FLIP, &KSND[S_LOGDRUM]);   /* (a soft wooden knock: was CHIP, Nick 19 Nov 2026: more subtle) */
     k_slot_set(PB_PAD, &KSND[S_BRASSPAD]);
     k_slot_rel(PB_BUMP, 0.6f);
     k_slot_rel(PB_BASS, 0.2f);
@@ -215,7 +215,8 @@ static void pb_add(uint32_t pts, int32_t x, int32_t wy, uint16_t c)   /* points,
     pts *= pb.mult;
     pb.score += pts;
     itos((int32_t)pts, s + 1);
-    juice_text(x < 30 ? 30 : x > 200 ? 200 : x, y < 34 ? 34 : y > 226 ? 226 : y, s, c);
+    if (pts >= 1000u)                    /* (only the big ones: a bumper's 100s went by in a blur of numbers) */
+        juice_text(x < 30 ? 30 : x > 200 ? 200 : x, y < 34 ? 34 : y > 226 ? 226 : y, s, c);
 }
 static void pb_cheer(void)
 {
@@ -293,7 +294,10 @@ static void pb_bumper(int i)
     juice_heat(5);
 }
 static void pb_multiball(void);
-static int pb_boss_up(void) { return !pb.boss_down_at || plat_ms() - pb.boss_down_at >= PB_BOSS_BACK; }
+static int pb_boss_up(void)              /* (signed: a time stamped | 1 can be a ms ahead: GPT's review) */
+{
+    return !pb.boss_down_at || (int32_t)(plat_ms() - pb.boss_down_at) >= (int32_t)PB_BOSS_BACK;
+}
 static void pb_boss_hit(void)            /* the boss hit: a blow, its chord tone, and down it goes at last */
 {
     int32_t x = PB_BUMPER[PB_BOSS][0], y = PB_BUMPER[PB_BOSS][1];
@@ -521,7 +525,8 @@ static void pb_step(pb_ball_t *b, float h)   /* one small step of one ball */
     for (i = 0; i < 3; i++)
         pb_hit_circle(b, PB_POST[i][0], PB_POST[i][1], 5.0f, 0.5f, 0.0f);
     for (i = 0; i < PB_NBUMP; i++)       /* the bumpers: the creatures (and the boss, bigger) */
-        if (pb_hit_circle(b, PB_BUMPER[i][0], PB_BUMPER[i][1], i == PB_BOSS ? PB_BOSS_R : 14.0f, 0.6f, 0.32f) > 0.05f &&
+        if (!(i == PB_BOSS && !pb_boss_up()) &&   /* (the boss down: nothing there to hit) */
+            pb_hit_circle(b, PB_BUMPER[i][0], PB_BUMPER[i][1], i == PB_BOSS ? PB_BOSS_R : 14.0f, 0.6f, 0.32f) > 0.05f &&
             now - pb.bump_at[i] > 60u) {
             if (i == PB_BOSS) {
                 pb.bump_at[i] = now | 1u;
@@ -675,7 +680,8 @@ static void pb_tick(void)
         return;
     if ((int32_t)(now - pb.slow_until) < 0)   /* slow motion: a third the speed */
         dt = (dt + 2u) / 3u;
-    if (pb.boss_down_at && !pb.boss_ann && now - pb.boss_down_at >= PB_BOSS_BACK) {   /* the next monster rises */
+    if (pb.boss_down_at && !pb.boss_ann && (int32_t)(now - pb.boss_down_at) >= (int32_t)PB_BOSS_BACK) {   /* the next
+                                          * monster rises */
         char nm[24];
         pb.boss_ann = 1;
         tcpy(nm, "THE ");
@@ -693,7 +699,7 @@ static void pb_tick(void)
     for (k = 0; k < 2; k++)              /* a flipper's key: a click, the flipper's sound */
         if (keys[k] && !pb.flip_at[k]) {
             pb.flip_at[k] = now | 1u;
-            k_on(0, k ? scale_fit(h_bass() + 19) : h_bass() + 12, 80, PB_FLIP, 0.08f);   /* its click, on the chord:
+            k_on(0, k ? scale_fit(h_bass() + 19) : h_bass() + 12, 52, PB_FLIP, 0.08f);   /* its click, on the chord:
                                           * the left its root, the right its fifth (Nick, 19 Nov 2026: musical) */
             juice_kick(k ? 1 : -1, 1);   /* (a snap you feel) */
             if (pb.lit[0] + pb.lit[1] + pb.lit[2] < 3) {   /* the flippers shift which lights are lit */
@@ -874,129 +880,89 @@ static void pb_thick(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t r, 
         cv_rect(x - r, y - r, 2 * r + 1, 2 * r + 1, c);
     }
 }
-/* a monster's face, about 40 px across, at x, y (screen). anger 0 calm .. 2 furious: the brows come down, the eyes
- * go red and glow, the mouth opens, it shakes and steams. hit: a white flash */
+/* the monsters, pixel art (20 x 22, drawn at twice the size; Nick, 19 Nov 2026: drawn, not circles): a outline,
+ * b skin, c its shade, d hair or a dark feature, e an accent, f a light accent */
+static const char *const PB_MON_ART[PB_NMON][22] = {
+    {"......aaaaaaaa......", "....aaddddddddaa....", "...addddddddddddda..", "..adddddddddddddda..", "..addddbbddbbdddda..", "..addbbbbddbbbbdda..", ".adbbbbbbddbbbbbbda.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abcbbbbbbbbbbbbcba.", ".abcbbbbbccbbbbbcba.", "..abbbbbbbbbbbbbba..", "..acbbbbbbbbbbbbca..", "e..acbbbbbbbbbbca..e", "ee..acbbbbbbbbca..ee", "eee..accbbbbcca..eee", "eeee..aaccccaa..eeee", "eeeee..aaaaaa..eeeee", "eeeeee........eeeeee", ".eeeee........eeeee."},
+    {"......aaaaaaaa......", "....aabbbbbbbbaa....", "...abbbbbbbbbbbba...", "..abccccccccccccba..", "..abbbbbbbbbbbbbba..", ".abbbbbbbbbbbbbbbba.", ".accccccbbbbcccccca.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".acccccccccccbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbccccccccccca.", "..abbbbbbbbbbbbbba..", "..abbbbbbbbbbbbbba..", "..acccccbbbbbbccca..", "...abbbbbbbbbbbba...", "....abbbccccbbba....", ".....aabbbbbbaabb...", ".......aaaaaa..abb..", "................abb.", ".................ab."},
+    {"..aa............aa..", "..ada..........ada..", "..adea........aeda..", "..adeea.aaaa.aeeda..", "..addeaaddddaaedda..", "..adddddddddddddda..", ".adbddddddddddddbda.", "adbbbbbbbbbbbbbbbbda", "adbbbbbbbbbbbbbbbbda", "adbbbbbbbbbbbbbbbbda", "adbbbbbbbbbbbbbbbbda", ".dbbbbbbffffbbbbbbd.", "ddbbbbbffffffbbbbbdd", ".dbbbbffffffffbbbbd.", "ddcbbbffffffffbbbcdd", ".adcbbffffffffbbcda.", "..adcbbffffffbbcda..", "...adccbbbbbbccda...", "....addccccccdda....", ".....aaddddddaa.....", ".......aaaaaa.......", "...................."},
+    {"....a...aa....a.....", "...ada.adda..ada.a..", "..adddaddddaadddada.", ".adddddddddddddddda.", ".addbdddddbdddbddda.", ".abebebebebebbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".abbbbbbbbbbbbbbbba.", ".acbbbbbbbbbbbbbbca.", "..acbbbbbbbbbbbbca..", "..acbbbbbbbbbbbbca..", "..abbbbbbbbbbbbbba..", "...acbbbbbbbbbbca...", "...accbbbbbbbbcca...", "....aaccbebbccaa....", "......aaaaaaaa......", "....................", "...................."},
+    {"........aaaa........", "......aaeeeeaa......", ".....aeebbbbeea.....", "....abbbbbbbbbba....", "...abbcbbbbbbcbba...", "a..abbbbbbbbbbbba..a", "ea.abbbbbbbbbbbba.ae", "eeaabbbbbbbbbbbbaaee", "eefabbbbbbbbbbbbafee", "eeeabbbbbbbbbbbbaeee", "efeabbbbbbbbbbbbaefe", "eeeabbcbbbbbbcbbaeee", ".eeabbbbbbbbbbbbaee.", "..eabbbbbbbbbbbbae..", "...acbbbbbbbbbbca...", "...acbbbbbbbbbbca...", "....acbbbbbbbbca....", "....accbbbbbbcca....", ".....aaccccccaa.....", ".......aaaaaa.......", "....................", "...................."},
+};
+static const uint8_t PB_MON_PAL[PB_NMON][6][3] = {
+    {{20, 12, 24}, {226, 220, 236}, {176, 168, 196}, {28, 20, 40}, {170, 24, 48}, {0, 0, 0}},
+    {{40, 30, 24}, {222, 206, 160}, {170, 150, 104}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
+    {{26, 20, 20}, {120, 110, 104}, {84, 76, 72}, {62, 54, 52}, {176, 112, 112}, {184, 174, 164}},
+    {{18, 24, 16}, {146, 170, 126}, {104, 130, 92}, {26, 22, 28}, {70, 40, 52}, {0, 0, 0}},
+    {{10, 30, 28}, {62, 146, 124}, {38, 104, 90}, {0, 0, 0}, {36, 96, 84}, {120, 204, 176}},
+};
+/* the face, by anger: eyes and brows (12 x 5, at 4, 7), the mouth (8 x 4, at 6, 13; the werewolf's a row lower).
+ * g an eye's white, h its iris, i a brow, j the mouth, k teeth, l a red glow, m the mouth's inside */
+static const char *const PB_MON_EYES[3][5] = {
+    {"............", ".iiii..iiii.", ".gghg..ghgg.", ".gggg..gggg.", "............"},
+    {"............", ".ii......ii.", "..iii..iii..", ".gghg..ghgg.", "..ggg..ggg.."},
+    {"ii........ii", ".iii....iii.", "..iii..iii..", ".lhhl..lhhl.", "..ll....ll.."},
+};
+static const char *const PB_MON_MOUTH[3][4] = {
+    {"........", ".jjjjjj.", "........", "........"},
+    {"........", "..jjjj..", ".j....j.", "........"},
+    {".kjjjjk.", "jjmmmmjj", "jmmmmmmj", ".jjjjjj."},
+};
+/* a monster's face, 40 x 44 px, its middle at x, y (screen). anger 0 calm .. 2 furious: the brows come down, the
+ * eyes go red and glow, the mouth opens, it flushes, trembles and steams. hit: a white flash */
 static void pb_monster(int kind, int32_t x, int32_t y, int anger, int hit, uint32_t ms)
 {
-    static const uint16_t SKIN[PB_NMON] = {RGB(222, 214, 236), RGB(212, 196, 150), RGB(104, 96, 92), RGB(140, 168, 124),
-                                           RGB(58, 140, 118)};
-    uint16_t skin = SKIN[kind], dark = RGB(14, 10, 20), eye_c;
-    int32_t ex = 7, ey = y - 3, k, r = 18;
+    static const uint8_t EYEC[PB_NMON][3] = {{200, 20, 40}, {255, 200, 40}, {255, 190, 40}, {30, 24, 30}, {20, 20, 20}};
+    uint16_t pal[13];
+    int32_t r, c, ox, oy, my = kind == 2 ? 14 : 13;
+    for (c = 0; c < 6; c++) {
+        pal[c] = RGB(PB_MON_PAL[kind][c][0], PB_MON_PAL[kind][c][1], PB_MON_PAL[kind][c][2]);
+        if (anger >= 2 && (c == 1 || c == 2))   /* flushed with rage */
+            pal[c] = mix565(pal[c], RGB(255, 40, 40), 70);
+        if (hit && c)
+            pal[c] = C_INK;
+    }
+    pal[6] = RGB(240, 236, 220);
+    pal[7] = anger == 0 ? RGB(EYEC[kind][0], EYEC[kind][1], EYEC[kind][2]) : anger == 1 ? RGB(220, 30, 40) : RGB(255, 60, 60);
+    pal[8] = RGB(16, 10, 20), pal[9] = RGB(30, 10, 20), pal[10] = RGB(250, 250, 240), pal[11] = RGB(255, 90, 90);
+    pal[12] = RGB(150, 20, 40);
     if (anger >= 2) {
-        x += (int32_t)((ms / 40u) % 3u) - 1;   /* trembling with rage */
-        skin = mix565(skin, RGB(255, 40, 40), 70);
-        for (k = 0; k < 3; k++) {        /* steam */
-            int32_t sy = y - 24 - (int32_t)((ms / 25u + (uint32_t)k * 13u) % 18u);
-            disc(x - 16 + k * 16, sy, 3 - (int32_t)((ms / 25u + (uint32_t)k * 13u) % 18u) / 7, RGB(180, 170, 190));
+        x += (int32_t)((ms / 40u) % 3u) - 1;   /* trembling */
+        for (c = 0; c < 3; c++) {        /* steam, in square puffs */
+            uint32_t q = (ms / 25u + (uint32_t)c * 13u) % 18u;
+            int32_t sz = q < 6u ? 4 : q < 12u ? 2 : 2, sy = y - 26 - (int32_t)q;
+            cv_rect(x - 16 + c * 14 - sz / 2, sy, sz, sz, q < 12u ? RGB(190, 180, 200) : RGB(110, 100, 130));
         }
     }
+    ox = x - 20, oy = y - 22;
+    for (r = 0; r < 22; r++)             /* its shadow, then the face */
+        for (c = 0; c < 20; c++)
+            if (PB_MON_ART[kind][r][c] != '.')
+                cv_rect(ox + 3 + c * 2, oy + 4 + r * 2, 2, 2, RGB(4, 2, 10));
+    for (r = 0; r < 22; r++)
+        for (c = 0; c < 20; c++) {
+            char ch = PB_MON_ART[kind][r][c];
+            if (ch != '.')
+                cv_rect(ox + c * 2, oy + r * 2, 2, 2, pal[ch - 'a']);
+        }
     if (hit)
-        skin = C_INK;
-    disc(x + 3, y + 4, r, RGB(4, 2, 10));   /* its shadow */
-    switch (kind) {                      /* what's behind the head */
-    case 0:                              /* the vampire's high collar */
-        disc(x - 17, y + 12, 11, RGB(150, 20, 40));
-        disc(x + 17, y + 12, 11, RGB(150, 20, 40));
-        disc(x - 15, y + 13, 7, dark);
-        disc(x + 15, y + 13, 7, dark);
-        break;
-    case 2:                              /* the werewolf's ears: tall and pointed */
-        for (k = 0; k < 14; k++) {
-            int32_t w = 1 + k * 5 / 7;
-            cv_rect(x - 13 - w, y - 28 + k, 2 * w + 1, 1, RGB(70, 64, 62));
-            cv_rect(x + 13 - w, y - 28 + k, 2 * w + 1, 1, RGB(70, 64, 62));
-            if (k > 5)
-                cv_rect(x - 13 - w / 2, y - 28 + k, w + 1, 1, RGB(170, 110, 110)),
-                cv_rect(x + 13 - w / 2, y - 28 + k, w + 1, 1, RGB(170, 110, 110));
+        return;
+    for (r = 0; r < 5; r++)              /* the eyes and brows */
+        for (c = 0; c < 12; c++) {
+            char ch = PB_MON_EYES[anger][r][c];
+            if (ch == '.' || (kind == 1 && anger < 2 && c < 6 && (ch == 'g' || ch == 'h')))
+                continue;                /* (the mummy's other eye, under its bandage) */
+            cv_rect(ox + (4 + c) * 2, oy + (7 + r) * 2, 2, 2, pal[ch - 'a']);
         }
-        break;
-    case 4:                              /* the lagoon thing's fins */
-        for (k = -1; k <= 1; k += 2) {
-            disc(x + k * 19, y - 2, 9, RGB(40, 110, 96));
-            pb_thick(x + k * 14, y - 8, x + k * 25, y - 4, 0, RGB(110, 200, 170));
-            pb_thick(x + k * 14, y - 2, x + k * 26, y + 2, 0, RGB(110, 200, 170));
-            pb_thick(x + k * 14, y + 4, x + k * 24, y + 8, 0, RGB(110, 200, 170));
+    for (r = 0; r < 4; r++)              /* the mouth */
+        for (c = 0; c < 8; c++) {
+            char ch = PB_MON_MOUTH[anger][r][c];
+            if (ch != '.')
+                cv_rect(ox + (6 + c) * 2, oy + (my + r) * 2, 2, 2, pal[ch - 'a']);
         }
-        break;
-    default:
-        break;
-    }
-    disc(x, y, r, skin);                 /* the head */
-    switch (kind) {                      /* its features */
-    case 0:                              /* slicked hair, a widow's peak */
-        cv_rect(x - 14, y - 17, 28, 5, dark);
-        pb_thick(x - 9, y - 13, x, y - 8, 1, dark);
-        pb_thick(x + 9, y - 13, x, y - 8, 1, dark);
-        break;
-    case 1:                              /* bandages, one eye peeking */
-        for (k = -14; k <= 14; k += 6) {
-            int32_t w = 2 * (int32_t)fm_sqrtf((float)(r * r - k * k));
-            if (k == -2)
-                continue;                /* (the gap for the eyes) */
-            cv_rect(x - w / 2, y + k, w, 2, hit ? RGB(220, 220, 220) : RGB(160, 146, 108));
-        }
-        pb_thick(x + 14, y + 8, x + 22, y + 18, 1, RGB(212, 196, 150));   /* a loose end */
-        break;
-    case 2:                              /* a long muzzle, the nose, shaggy cheeks and a tuft */
-        disc(x, y + 8, 10, hit ? C_INK : RGB(170, 160, 150));
-        cv_rect(x - 9, y + 2, 19, 6, hit ? C_INK : RGB(170, 160, 150));
-        disc(x, y + 2, 3, dark);
-        for (k = 0; k < 3; k++) {
-            pb_thick(x - 17, y + 2 + k * 4, x - 22, y + 4 + k * 5, 0, RGB(70, 64, 62));
-            pb_thick(x + 17, y + 2 + k * 4, x + 22, y + 4 + k * 5, 0, RGB(70, 64, 62));
-        }
-        pb_thick(x - 4, y - 17, x - 1, y - 23, 1, RGB(70, 64, 62));
-        pb_thick(x + 3, y - 17, x + 5, y - 22, 1, RGB(70, 64, 62));
-        break;
-    case 3:                              /* messy hair, a stitched scar */
-        for (k = -12; k <= 12; k += 6)
-            disc(x + k, y - 15, 5, dark);
-        pb_thick(x - 12, y - 9, x + 11, y - 11, 0, RGB(60, 40, 50));
-        for (k = -10; k <= 9; k += 5)
-            cv_rect(x + k, y - 12, 1, 4, RGB(60, 40, 50));
-        break;
-    default:                             /* scales */
-        for (k = 0; k < 8; k++)
-            disc(x - 12 + (k % 4) * 8 + (k / 4) * 4, y - 12 + (k / 4) * 5, 1, RGB(30, 90, 76));
-        break;
-    }
-    eye_c = anger == 0 ? (kind == 1 ? C_YEL : kind == 2 ? RGB(255, 200, 40) : RGB(30, 20, 40))
-                       : anger == 1 ? RGB(220, 40, 50) : RGB(255, 60, 60);
-    if (kind == 4)
-        ex = 8;
-    for (k = -1; k <= 1; k += 2) {       /* the eyes */
-        int32_t cx = x + k * ex;
-        if (kind == 1 && k < 0 && anger < 2)
-            continue;                    /* (the mummy's other eye, under its bandage) */
-        if (anger >= 2)
-            disc(cx, ey, 6, mix565(skin, RGB(255, 40, 40), 140));   /* glowing */
-        disc(cx, ey, kind == 4 ? 5 : 4, kind == 4 || kind == 3 ? RGB(240, 240, 220) : C_INK);
-        disc(cx, ey, 2, eye_c);
-        if (kind == 3 && anger == 0)     /* heavy lids */
-            cv_rect(cx - 4, ey - 4, 9, 3, skin);
-    }
-    for (k = -1; k <= 1; k += 2) {       /* the brows: level, then slanting down to a scowl */
-        int32_t ox = x + k * ex;
-        if (anger == 0)
-            pb_thick(ox - 4, ey - 7, ox + 4, ey - 7, 0, dark);
-        else if (anger == 1)
-            pb_thick(ox - k * 5, ey - 9, ox + k * 3, ey - 6, 0, dark);
-        else
-            pb_thick(ox - k * 6, ey - 11, ox + k * 3, ey - 5, 1, dark);
-    }
-    if (anger == 0)                      /* the mouth: shut, a frown, then wide open */
-        cv_rect(x - 6, y + 9, 12, 2, dark);
-    else if (anger == 1) {
-        cv_rect(x - 6, y + 10, 12, 2, dark);
-        cv_rect(x - 8, y + 12, 3, 2, dark);
-        cv_rect(x + 5, y + 12, 3, 2, dark);
-    } else {
-        disc(x, y + 11, 6, dark);
-        cv_rect(x - 5, y + 6, 10, 2, RGB(240, 240, 230));
-    }
-    if (kind == 0 || kind == 2) {        /* fangs */
-        cv_rect(x - 4, y + (anger >= 2 ? 7 : 10), 2, 4, RGB(250, 250, 250));
-        cv_rect(x + 2, y + (anger >= 2 ? 7 : 10), 2, 4, RGB(250, 250, 250));
+    if ((kind == 0 || kind == 2) && anger < 2) {   /* fangs */
+        cv_rect(ox + 7 * 2, oy + (my + 2) * 2, 2, 2, pal[10]);
+        cv_rect(ox + 12 * 2, oy + (my + 2) * 2, 2, 2, pal[10]);
     }
 }
 static void pb_wall_draw(int32_t x1, int32_t y1, int32_t x2, int32_t y2)   /* the dungeon's gold-banded stone */
@@ -1283,8 +1249,8 @@ static void pb_scene(void)
         if (y < -20 || y > 260)
             continue;
         if (i == PB_BOSS) {              /* THE BOSS: a monster, angrier as it's hit, its health over it */
-            uint32_t hq = ms - pb.boss_hit_at, dq = ms - pb.boss_down_at;
-            int hit = pb.boss_hit_at && hq < 140u, k2, anger;
+            uint32_t hq = ms - pb.boss_hit_at, dq = (int32_t)(ms - pb.boss_down_at) < 0 ? 0u : ms - pb.boss_down_at;
+            int hit = pb.boss_hit_at && (int32_t)hq >= 0 && hq < 140u, k2, anger;
             if (pb.boss_down_at && dq < PB_BOSS_BACK) {   /* down: its head pops off the table, spinning away */
                 if (dq < 900u) {
                     float t = (float)dq;

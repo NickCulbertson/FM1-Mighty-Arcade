@@ -22,3 +22,22 @@ tapkey 24
 wait 300
 expect mi_flags 2
 expect mi_opened >0
+# a quick tap never flags, on an even or an odd millisecond (the press is stamped | 1: unsigned, an even one read as
+# held for ages and flagged at once: Nick's stray flags, 19 Nov 2026). A fresh board for each, all squares closed
+tap PLAY
+wait 300
+key 24 down
+wait 30
+key 24 up
+wait 100
+expect mi_flags 0
+tap PLAY
+wait 301
+key 24 down
+wait 30
+key 24 up
+wait 100
+expect mi_flags 0
+tap PLAY
+wait 300
+expect mi_press_ahead 0

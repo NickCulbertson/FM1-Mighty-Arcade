@@ -237,9 +237,7 @@ static void po_sink(int b, int p)        /* ball b down pocket p */
         juice_burst(PO_POCK[p][0], PO_POCK[p][1], 12, 3, PO_BCOL[b], deg_col(PO_PTONE[p]), 0);
         juice_shake(3, 160);
         juice_heat(8);
-        itos((int32_t)pts, ps + 1);
-        juice_text(PO_POCK[p][0] < 60 ? 46 : PO_POCK[p][0] > 180 ? 194 : 120, PO_POCK[p][1] < 100 ? 66 : 214, ps,
-                   deg_col(PO_PTONE[p]));
+        (void)ps;                        /* (no points shown: POOL plays against par) */
         if (po.potted == 2)
             juice_pop(120, 120, "DOUBLE!", C_YEL);
         else if (po.potted == 3)

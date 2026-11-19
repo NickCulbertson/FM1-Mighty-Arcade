@@ -482,7 +482,7 @@ static int so_hidden(int area, int col, int i)   /* a card still in the air (or 
     uint32_t ms = plat_ms();
     if (so.deal_at && area == 1 && ms - so.deal_at < (uint32_t)(so_deal_order(col, i) + 1) * SO_DEAL_MS + 120u)
         return 1;
-    if (!so.fly_n || ms - so.fly_at >= 170u || so.fly_area != area || so.fly_col != col)
+    if (!so.fly_n || (int32_t)(ms - so.fly_at) >= 170 || so.fly_area != area || so.fly_col != col)   /* (signed: | 1) */
         return 0;
     return area == 0 ? 1 : i >= so.fly_start;
 }

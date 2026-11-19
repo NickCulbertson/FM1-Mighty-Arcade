@@ -552,7 +552,8 @@ static const bx_level_t BX_LEVELS[] = {
     {{{0}}, {{0}}, {{30, 150, 180, 30, 1}}, 3, 4, 100, 4},
     {{{56, 128, 12}, {184, 128, 12}}, {{0}}, {{30, 70, 180, 24, 0}, {30, 162, 180, 24, 1}}, 3, 4, 100, 0},
     /* 9: a conveyor carries you toward spikes */
-    {{{0}}, {{208, 152, 7}, {32, 88, 7}, {120, 128 - 58, 6}}, {{40, 140, 166, 26, 0}, {34, 76, 166, 26, 1}}, 3, 4, 105, 0},
+    {{{0}}, {{208, 152, 7}, {32, 88, 7}}, {{40, 140, 166, 26, 0}, {34, 76, 166, 26, 1}}, 3, 4, 105, 0},   /* (no spike
+                                          * at the top middle: Nick, 19 Nov 2026) */
     /* 10: moving spikes over conveyors; four balls open the exit */
     {{{0}}, {{60, 128, 8, 2, 40, 0}, {180, 128, 8, 2, 40, 1}}, {{30, 70, 180, 24, 0}, {30, 162, 180, 24, 1}}, 4, 4, 105, 0},
     /* 11: everything; a ball every three bars */
@@ -659,7 +660,6 @@ static void bx_open_exit(void)
     bbox.ey = bbox.py < 128.0f ? 196.0f : 60.0f;
     bbox.exit_on = 1;
     juice_pop(120, 100, "EXIT OPEN!", C_CYAN);
-    juice_text(120, 124, "ROLL INTO THE RING", C_GHOST);
     juice_ring((int32_t)bbox.ex, (int32_t)bbox.ey, 28, C_CYAN, 500);
     juice_sting(1);
 }
@@ -729,12 +729,13 @@ static void bx_start_level(void)
         itos(bbox.level + 1, label + 6);
         static const char *const NEW[6] = {"", "NEW: BUMPERS", "NEW: SPIKES! DON'T TOUCH", "NEW: MOVING SPIKES",
                                            "NEW: CONVEYORS PUSH YOU", "ALL OF IT, FASTER"};
-        char ex[24];
+        char ex[32];                     /* ("GRAB 4 STARS FOR THE EXIT": 26 with its end) */
         juice_pop(120, 96, label, C_CYAN);
         tcpy(ex, "GRAB ");
         itos(bx_lv()->exit_balls, ex + 5);
         tcat(ex, " STARS FOR THE EXIT");
-        juice_text(120, 132, bx_lv()->intro ? NEW[bx_lv()->intro] : ex, bx_lv()->intro ? C_YEL : C_GHOST);
+        if (bx_lv()->intro || bbox.level == 0)   /* (what's new, or on the first level what to do; no more than that) */
+            juice_text(120, 132, bx_lv()->intro ? NEW[bx_lv()->intro] : ex, bx_lv()->intro ? C_YEL : C_GHOST);
     }
 }
 static void bx_new(void)
@@ -807,8 +808,7 @@ static void bx_hurt(int keep)            /* a ball got you: back to one ball (ke
         bbox.nballs += bbox.b[i].on;
     if (!bbox.exit_on && bbox.stars) {   /* a hit: the stars caught are lost (Nick, 19 Nov 2026); an exit already
                                           * open stays open */
-        bbox.stars = 0;
-        juice_text((int32_t)bbox.px, (int32_t)bbox.py - 22, "STARS LOST", C_YEL);
+        bbox.stars = 0;                  /* (the header's stars go dark: no word for it, Nick 19 Nov 2026: too many) */
     }
     bbox.bars = 0;
     bbox.spawn_at = 0;
@@ -951,7 +951,6 @@ static void bx_tick(void)
             b->near_at = ms;
             bbox.score += 10u * bbox.nballs;
             toy_note_g(&bbox.near_t, h_tone(9), 96, TY_STAR, 0.3f, 2u);
-            juice_text((int32_t)bbox.px, (int32_t)bbox.py - 14, "CLOSE!", C_YEL);
             juice_burst((int32_t)bbox.px, (int32_t)bbox.py, 6, 2, C_YEL, C_INK, 0);
             juice_heat(6);
         }
@@ -982,7 +981,7 @@ static void bx_tick(void)
             itos(bx_lv()->exit_balls, nn);
             tcat(g, nn);
         }
-        juice_pop((int32_t)fm_clampf(bbox.sx, 50.0f, 190.0f), (int32_t)bbox.sy - 14, g, C_YEL);
+        (void)g;                         /* (no "1 / 3": the header's stars say it, Nick 19 Nov 2026) */
         if (bbox.stars >= bx_lv()->exit_balls)
             bx_open_exit();
         else if (bbox.nballs < BX_NB)    /* every star brings another ball */

@@ -555,7 +555,8 @@ typedef struct {
     int8_t lean;
     uint8_t jar[SW_SLOTS], jkind[SW_SLOTS], jnext;   /* the jar: each slot's note (0 empty), its droid */
     uint32_t seq_ms[SW_SLOTS], jar_ms[SW_SLOTS];   /* a slot sounded (lit); a droid landed in it */
-    float shx[2], shy[2];                /* your shots (shy < 0: none) */
+    float shx[4], shy[4];                /* your shots (shy < 0: none): two in the air, four with DOUBLE (a pair on
+                                          * every eighth when held: Nick, 19 Nov 2026) */
     uint32_t last, score, over_at, hurt_until, wave_at, catches, shot_at;
     float fly_x[4], fly_y[4];            /* the hit ones on their way up to the jar */
     uint8_t fly_k[4], fly_slot[4];
@@ -564,14 +565,18 @@ typedef struct {
     uint8_t mq_w, mq_r;
     uint32_t burst_at[3];                /* a sentinel's burst still to come (ms), its x */
     float burst_x[3], burst_y[3];
-    uint8_t pu_on, pu_kind, pow;         /* a power-up falling (its kind); the power you have (1 DOUBLE, 2 RAPID) */
+    uint8_t pu_on, pu_kind, pow;         /* a power-up falling (its kind); the power you have (1 DOUBLE, 2 SHIELD: it
+                                          * takes the next hit for you; Nick, 19 Nov 2026, instead of RAPID) */
     float pu_x, pu_y;
     uint32_t pow_until;
     uint16_t beats;
 } sw_t;
 #define SW_DIVE_MS 1800u                 /* a dive: down at you and back up to its post */
-#define SW_POW_MS 9000u                  /* a power lasts this long */
+#define SW_POW_MS 9000u                  /* DOUBLE lasts this long */
+#define SW_SHIELD_MS 15000u              /* the shield, this long if nothing hits it */
 static uint32_t sw_best;
+static uint8_t sw_bombing;
+static uint16_t sw_pairs;                /* DOUBLE's pairs fired (a probe) */               /* a BOMB going off: its catches say nothing (one BOMB! is the word) */
 #define sw (*(sw_t *)g_arena)
 _Static_assert(sizeof(sw_t) <= sizeof g_arena, "sw: the arena is too small");
 static void sw_boom(int32_t x, int32_t y, uint16_t c, int big)   /* something bursts */
@@ -636,7 +641,7 @@ static void sw_new(void)
     sw.score = 0;
     sw.over = 0;
     sw.px = 120.0f, sw.py = (float)SW_SHIP_Y;
-    sw.shy[0] = sw.shy[1] = -1.0f;
+    sw.shy[0] = sw.shy[1] = sw.shy[2] = sw.shy[3] = -1.0f;
     sw.last = 0;
     sw.streak = 0;
     sw.catches = 0;
@@ -687,13 +692,16 @@ static void sw_catch(int k)              /* droid k hit: up into the jar */
     pts = 10u * (1u + sw.streak / 4u) * (1u + sw.wave) * (b->kind == 1 ? 2u : 1u) * (b->dive ? 3u : 1u);   /* (a
                                           * gunship: double; one caught mid-dive: triple) */
     sw.score += pts;
-    if (b->dive) {
+    if (b->dive && !sw_bombing) {
         juice_pop((int32_t)fm_clampf(b->x + 8.0f, 60.0f, 180.0f), (int32_t)b->y - 6, "NICE SHOT!", C_YEL);
         juice_kick(0, -3);
     }
     if (!sw.pu_on && !sw.pow && (kr() >> 16) % 100u < 14u) {   /* now and then it drops a power-up */
         sw.pu_on = 1;
-        sw.pu_kind = (uint8_t)((kr() >> 16) % 2u);
+        {                                /* DOUBLE, SHIELD, or now and then a BOMB */
+            uint32_t r = (kr() >> 16) % 100u;
+            sw.pu_kind = (uint8_t)(r < 40u ? 0 : r < 80u ? 1 : 2);
+        }
         sw.pu_x = b->x + 8.0f, sw.pu_y = b->y + 8.0f;
     }
     b->dive = 0;
@@ -709,7 +717,8 @@ static void sw_catch(int k)              /* droid k hit: up into the jar */
     k_on(grid_next(), h_tone(b->note) + 12, 100, NA_HIT, 0.4f);   /* its note, on the next sixteenth */
     sw_boom((int32_t)b->x + 8, (int32_t)b->y + 7, SW_KLIGHT[b->kind], 0);
     itos((int32_t)pts, ps + 1);
-    juice_text((int32_t)b->x + 8, (int32_t)b->y + 14, ps, SW_KLIGHT[b->kind]);
+    if (sw.streak >= 4 && !sw_bombing)   /* (the points only once a streak's worth them: fewer words in the air) */
+        juice_text((int32_t)b->x + 8, (int32_t)b->y + 14, ps, SW_KLIGHT[b->kind]);
     if (!sw.n_alive) {                   /* the whole swarm: the next */
         juice_flash(RGB(255, 255, 255), 150, 500);
         juice_ring(120, 100, 150, C_CYAN, 700);
@@ -730,15 +739,27 @@ static void sw_nav(int dx, int dy, int sel)
     }
     if (!sel)
         return;
-    if (sw.pow == 1 && sw.shy[0] < 0.0f && sw.shy[1] < 0.0f) {   /* DOUBLE: a pair, side by side */
-        sw.shx[0] = sw.px - 6.0f, sw.shx[1] = sw.px + 6.0f;
-        sw.shy[0] = sw.shy[1] = sw.py - 4.0f;
-        sw.shot_at = plat_ms() | 1u;
-        k_on(0, 96, 56, NA_HAT, 0.03f);
-        juice_burst((int32_t)sw.px, (int32_t)sw.py - 4, 5, 1, C_YEL, C_INK, 0);
+    if (sw.pow == 1) {                   /* DOUBLE: a pair, side by side, in either pair of slots that's free */
+        for (k = 0; k < 4; k += 2)
+            if (sw.shy[k] < 0.0f && sw.shy[k + 1] < 0.0f) {
+                sw.shx[k] = sw.px - 6.0f, sw.shx[k + 1] = sw.px + 6.0f;
+                sw.shy[k] = sw.shy[k + 1] = sw.py - 4.0f;
+                sw.shot_at = plat_ms() | 1u;
+                sw_pairs++;
+                k_on(0, 96, 56, NA_HAT, 0.03f);
+                juice_burst((int32_t)sw.px, (int32_t)sw.py - 4, 5, 1, C_YEL, C_INK, 0);
+                return;
+            }
         return;
     }
-    for (k = 0; k < 2; k++)              /* a shot (two at most in the air) */
+    {                                    /* (one shot: two at most in the air) */
+        int up = 0;
+        for (k = 0; k < 4; k++)
+            up += sw.shy[k] >= 0.0f;
+        if (up >= 2)
+            return;
+    }
+    for (k = 0; k < 4; k++)              /* a shot */
         if (sw.shy[k] < 0.0f) {
             sw.shx[k] = sw.px, sw.shy[k] = sw.py - 4.0f;
             sw.shot_at = plat_ms() | 1u;
@@ -750,6 +771,17 @@ static void sw_nav(int dx, int dy, int sel)
 static void sw_hurt(void)
 {
     uint32_t ms = plat_ms();
+    if (sw.pow == 2) {                   /* the shield takes it: it breaks, you're fine */
+        sw.pow = 0;
+        sw.hurt_until = ms + 900u;
+        k_on(0, h_tone(7) + 12, 100, NA_HIT, 0.4f);
+        k_on(k_at(0.06f), h_tone(4) + 12, 90, NA_HIT, 0.4f);
+        juice_ring((int32_t)sw.px, (int32_t)sw.py + 8, 50, C_CYAN, 400);
+        juice_burst((int32_t)sw.px, (int32_t)sw.py + 8, 16, 3, C_CYAN, C_INK, 0);
+        juice_shake(4, 200);
+        juice_pop(120, 150, "BLOCKED!", C_CYAN);
+        return;
+    }
     sw.hurt_until = ms + 2200u;
     sw.streak = 0;
     k_on(0, degree_note(-5), 110, NA_BOOM, 0.8f);
@@ -933,19 +965,35 @@ static void sw_tick(void)
         sw.pu_y += 0.05f * f;
         if (fm_fabsf(sw.pu_x - sw.px) < 13.0f && fm_fabsf(sw.pu_y - (sw.py + 8.0f)) < 13.0f) {
             sw.pu_on = 0;
+            if (sw.pu_kind == 2) {       /* the BOMB: every droid in the sky, down at once (Nick, 19 Nov 2026) */
+                int j, w0 = sw.wave;
+                juice_flash(RGB(255, 255, 255), 220, 500);
+                juice_shake(12, 600);
+                juice_freeze(120);
+                k_on(0, 33, 120, NA_KICK, 0.5f);
+                k_on(0, degree_note(-7), 110, NA_BOOM, 1.2f);
+                sw_bombing = 1;
+                for (j = 0; j < SW_NB && sw.wave == w0; j++)   /* (until the wave's cleared: not the next one's) */
+                    if (sw.b[j].on)
+                        sw_catch(j);
+                sw_bombing = 0;
+                juice_pop(120, 120, "BOMB!", C_PINK);   /* (after: the word that stays, over the next wave's) */
+                sw.pu_on = 0;            /* (no power-up from the blast itself) */
+                return;
+            }
             sw.pow = (uint8_t)(sw.pu_kind + 1);
-            sw.pow_until = ms + SW_POW_MS;
-            juice_pop(120, 150, sw.pow == 1 ? "DOUBLE SHOT!" : "RAPID FIRE!", C_YEL);
+            sw.pow_until = ms + (sw.pow == 2 ? SW_SHIELD_MS : SW_POW_MS);
+            juice_pop(120, 150, sw.pow == 1 ? "DOUBLE SHOT!" : "SHIELD!", sw.pow == 1 ? C_YEL : C_CYAN);
             juice_ring((int32_t)sw.px, (int32_t)sw.py + 8, 40, C_YEL, 400);
             juice_flash(RGB(255, 210, 63), 80, 250);
             juice_sting(1);
         } else if (sw.pu_y > 240.0f)
             sw.pu_on = 0;
     }
-    for (k = 0; k < 2; k++)              /* your shots: up, and into a droid */
+    for (k = 0; k < 4; k++)              /* your shots: up, and into a droid */
         if (sw.shy[k] >= 0.0f) {
             int j2;
-            sw.shy[k] -= (sw.pow == 2 ? 0.66f : 0.36f) * f;   /* (RAPID: quicker, so the next is sooner) */
+            sw.shy[k] -= 0.36f * f;
             if (sw.shy[k] < (float)SW_JAR_Y + 20.0f) {   /* a miss: the streak ends */
                 sw.shy[k] = -1.0f;
                 sw.streak = 0;
@@ -1051,14 +1099,26 @@ static void sw_scene(void)
             sw_droid(b->kind, (int32_t)b->x, (int32_t)b->y, ms, k, b->dive && (ms / 80u) & 1u);
         }
     }
-    if (sw.pu_on) {                      /* a power-up: a capsule, spinning its letter */
-        int32_t x = (int32_t)sw.pu_x, y = (int32_t)sw.pu_y;
-        uint16_t c = sw.pu_kind ? C_PINK : C_YEL;
-        disc(x, y, 9, mix565(C_BG, c, 90 + (int32_t)((ms / 60u) % 4u) * 30));
-        disc(x, y, 6, c);
-        text_c(x, y - 6, &FONT_T, sw.pu_kind ? "R" : "D", C_BG);
+    if (sw.pu_on) {                      /* a power-up: a pixel capsule (DOUBLE: two shots; SHIELD: a shield), blinking */
+        static const char *const PU[3][9] = {
+            {"..aaaaaa..", ".abbbbbba.", "abbcbbcbba", "abccccccba", "abbcbbcbba", "abbcbbcbba", "abbcbbcbba", ".abbbbbba.",
+             "..aaaaaa.."},                                                         /* DOUBLE: two shots */
+            {"..aaaaaa..", ".abbbbbba.", "abbccccbba", "abcbbbbbba", "abbccccbba", "abbbbbbcba", "abbccccbba", ".abbbbbba.",
+             "..aaaaaa.."},                                                         /* SHIELD: an S */
+            {"..aaaaaa..", ".abbbbbea.", "abbbbbcbba", "abbddddbba", "abddddddba", "abddddddba", "abbddddbba", ".abbbbbba.",
+             "..aaaaaa.."}};                                                        /* BOMB: a bomb, its fuse lit */
+        static const uint16_t BODY[3][2] = {{RGB(255, 200, 50), RGB(255, 230, 120)}, {RGB(80, 200, 240), RGB(120, 235, 255)},
+                                            {RGB(230, 40, 110), RGB(255, 90, 150)}};
+        uint16_t map[5];
+        int lit = (ms / 150u) & 1u;
+        map[0] = RGB(20, 14, 30);
+        map[1] = BODY[sw.pu_kind][lit];
+        map[2] = RGB(16, 10, 22);            /* the marks (two shots, the S, the fuse): black (Nick, 19 Nov 2026) */
+        map[3] = RGB(30, 20, 40);
+        map[4] = lit ? RGB(255, 230, 80) : RGB(255, 140, 40);
+        sprite((int32_t)sw.pu_x - 10, (int32_t)sw.pu_y - 9, PU[sw.pu_kind], 9, 2, map);
     }
-    for (k = 0; k < 2; k++)              /* your shots: a hot core, a glow, a trail */
+    for (k = 0; k < 4; k++)              /* your shots: a hot core, a glow, a trail */
         if (sw.shy[k] >= 0.0f) {
             int32_t x = (int32_t)sw.shx[k], y = (int32_t)sw.shy[k];
             cv_rect(x - 1, y + 6, 4, 8, mix565(C_BG, C_CYAN, 90));
@@ -1081,11 +1141,20 @@ static void sw_scene(void)
     }
     if (!sw.over && !((int32_t)(ms - sw.hurt_until) < 0 && (ms / 100u) & 1u)) {   /* you: a rocket (it blinks, hurt) */
         int32_t x = (int32_t)sw.px, kick = sw.shot_at && ms - sw.shot_at < 80u ? 2 : 0, l = sw.lean, y = (int32_t)sw.py;
-        if (sw.pow) {                    /* a power: a glow round you, and its time running out under you */
-            uint32_t left = sw.pow_until - ms;
-            uint16_t pc = sw.pow == 1 ? C_YEL : C_PINK;
-            disc(x, y + 9, 13, mix565(C_BG, pc, 50 + (int32_t)((ms / 90u) % 3u) * 20));
-            cv_rect(x - 12, y + 24, (int32_t)(24u * left / SW_POW_MS), 2, pc);
+        if (sw.pow) {                    /* a power: the shield's ring round you, or DOUBLE's glow; its time under you */
+            uint32_t left = sw.pow_until - ms, all = sw.pow == 2 ? SW_SHIELD_MS : SW_POW_MS;
+            uint16_t pc = sw.pow == 1 ? C_YEL : C_CYAN;
+            if (sw.pow == 2 && (left > 2500u || (ms / 100u) & 1u)) {   /* (blinking as it runs out) */
+                static const char *const RING[14] = {"....aaaaaa....", "..aa......aa..", ".a..........a.", ".a..........a.",
+                                                     "a............a", "a............a", "a............a", "a............a",
+                                                     "a............a", "a............a", ".a..........a.", ".a..........a.",
+                                                     "..aa......aa..", "....aaaaaa...."};
+                uint16_t rm[1];
+                rm[0] = (ms / 120u) & 1u ? RGB(120, 235, 255) : RGB(60, 170, 220);
+                sprite(x - 14, y - 5, RING, 14, 2, rm);
+            } else if (sw.pow == 1)
+                cv_rect(x - 9, y + 4, 19, 14, mix565(C_BG, pc, 40 + (int32_t)((ms / 90u) % 3u) * 15));
+            cv_rect(x - 12, y + 24, (int32_t)(24u * left / all), 2, pc);
         }
         int32_t fl = 3 + (int32_t)((ms / 40u) % 3u) + (HELD_U ? 3 : 0);
         cv_rect(x - 2, y + 14 + kick, 5, fl, (ms / 50u) & 1u ? C_YEL : RGB(255, 150, 60));   /* the flame */

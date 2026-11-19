@@ -11,6 +11,12 @@
 #include "fastmath.h"
 #include "dsp/engine.h"
 
+/* while the screen draws, the clock stands still: the screen is drawn in two bands of 120 rows, one after the other,
+ * and anything timed (a ring growing, a flash fading, a star spinning) read a little later for the lower band tore at
+ * row 120 (Nick, 19 Nov 2026). The games' own logic, outside the drawing, keeps the real clock */
+static uint32_t k_draw_ms;               /* the frame's time while it's drawn; 0 not drawing */
+static uint32_t k_ms(void) { return k_draw_ms ? k_draw_ms : (plat_ms)(); }
+#define plat_ms() k_ms()
 #define SR_F 44100.0f
 #define SR_U 44100u
 
@@ -135,6 +141,9 @@ static struct {
     jpart_t p[JP_N];
     jtext_t t[JT_N];
     jring_t r[JR_N];
+    uint32_t dms;                        /* the frame's time, for drawing: both bands of the screen draw the same
+                                          * moment (rings, the flash, the beat: their halves tore apart at row 120,
+                                          * Nick 19 Nov 2026) */
     uint32_t freeze_until;               /* a hit-stop: the game holds still a moment, the hit lands */
     /* the music: the heat (0..100) your play builds and idling cools (the groove grows a sparkle with it), a stinger
      * asked for (played on the next sixteenth), and the beats coming (when, in ms), the screen pulsing on each */
@@ -179,7 +188,7 @@ static void juice_beat_at(uint32_t ms, int accent)   /* the groove says: a beat 
 }
 static int32_t juice_pulse(void)        /* 256 on the beat, gone 160 ms later */
 {
-    uint32_t q = plat_ms() - J.pulse_at;
+    uint32_t q = (J.dms ? J.dms : plat_ms()) - J.pulse_at;
     return J.pulse_at && q < 160u ? 256 - (int32_t)(q * 256u / 160u) : 0;
 }
 static void juice_kick(int32_t dx, int32_t dy)   /* the screen knocked dx, dy px, springing back (a bigger one wins) */
@@ -260,10 +269,38 @@ static void juice_embers(int32_t x, int32_t y, int32_t n, uint16_t c)   /* spark
 }
 static void juice_text_(int32_t x, int32_t y, const char *s, uint16_t c, int big)
 {
-    int32_t i, k = 0;
+    int32_t i, k = 0, tries;
     for (i = 0; i < JT_N; i++)
         if (J.t[i].life < J.t[k].life)
             k = i;
+    /* text never lands on text (Nick, 19 Nov 2026: overlapping words didn't read): a big pop sends the one before it
+     * off at once (the newest moment wins); a small one steps clear of a big one, then up a line past the others */
+    if (big) {
+        for (i = 0; i < JT_N; i++)
+            if (J.t[i].life && J.t[i].big && J.t[i].life > 6)
+                J.t[i].life = 6;
+    } else {
+        int32_t w = text_w(&FONT_M, s), moved = 1;
+        for (tries = 0; tries < 6 && moved; tries++) {
+            moved = 0;
+            for (i = 0; i < JT_N; i++) {
+                int32_t ow, oy;
+                if (!J.t[i].life || J.t[i].life <= 6)
+                    continue;
+                oy = J.t[i].y;
+                ow = text_w(J.t[i].big ? &FONT_L : &FONT_M, J.t[i].s);
+                if ((x - w / 2 < J.t[i].x + ow / 2 + 4) && (J.t[i].x - ow / 2 < x + w / 2 + 4) &&
+                    y > oy - (J.t[i].big ? 18 : 16) && y < oy + (J.t[i].big ? 34 : 16)) {
+                    y = J.t[i].big ? oy + 36 : oy - 17;   /* under a big one; over a small one */
+                    if (y > 220)
+                        y = oy - 18;
+                    if (y < 22)
+                        y = 22;
+                    moved = 1;
+                }
+            }
+        }
+    }
     J.t[k].x = (int16_t)x;
     J.t[k].y = (int16_t)y;
     J.t[k].life = (uint8_t)(big ? 48 : 28);
@@ -348,6 +385,7 @@ static void juice_step(void)             /* once a frame: the sparks move, the s
     int32_t i;
     uint32_t now = plat_ms();
     J.frame++;
+    J.dms = now;
     if (now - J.heat_at >= 140u) {       /* the heat cools, slowly */
         J.heat_at = now;
         if (J.heat > 0)
@@ -463,7 +501,7 @@ static void juice_draw(void)             /* over the scene, in screen coordinate
     }
     for (i = 0; i < JR_N; i++) {         /* the shockwaves: a white flash, then a thick ring and a white one inside */
         jring_t *g = &J.r[i];
-        uint32_t q = plat_ms() - g->at;
+        uint32_t q = J.dms - g->at;      /* (the frame's time, not the band's) */
         if (g->at && q < g->ms) {
             int32_t rr = g->r * (int32_t)q / g->ms + 2, a, fade = 256 - (int32_t)(q * 256u / g->ms);
             uint16_t c = mix565(0x0000, g->c, fade), w = mix565(0x0000, 0xFFFF, fade * 3 / 4);
@@ -527,7 +565,7 @@ static void j_shift_row(uint16_t *row, int32_t dx, uint16_t sbg)
 }
 static void juice_post(uint16_t bg)      /* the drawn band: shaken sideways, torn, tinted by the flash, inverted */
 {
-    uint32_t now = plat_ms(), r;
+    uint32_t now = J.dms ? J.dms : plat_ms(), r;   /* (the frame's time: both bands alike) */
     uint16_t sbg = swap16(bg);
     int glitch = (int32_t)(J.glitch_until - now) > 0;
     if (J.jx || glitch)
@@ -557,7 +595,9 @@ static void screen_draw(void (*scene)(void), uint16_t bg)
 {
     int32_t b;
     k_frame++;
+    k_draw_ms = 0;
     juice_step();
+    k_draw_ms = (plat_ms)() | 1u;        /* (one moment for both bands) */
     for (b = 0; b < 2; b++) {
         cv_begin(240, 120, bg);
         cv_oy = -120 * b + J.jy;         /* (gfx.c adds cv_oy to every y and clips to the band's rows) */
@@ -568,6 +608,7 @@ static void screen_draw(void (*scene)(void), uint16_t bg)
         juice_post(bg);
         cv_blit(0, (uint32_t)(120 * b));
     }
+    k_draw_ms = 0;
 }
 
 /* ----------------------------------------------------------------- sounds --- */

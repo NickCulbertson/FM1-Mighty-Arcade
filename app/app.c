@@ -228,6 +228,19 @@ static int h_tone(int i)                 /* the chord's tones, from the key's ro
         if (k == n)
             pc[n++] = c;
     }
+    if (h_minor()) {                     /* the minor shapes have only three or four tones: their 9th and 7th, in the
+                                          * scale, make five, so a run up the chord climbs no faster than the major
+                                          * ones (Nick, 19 Nov 2026: minor sat too high) */
+        static const int8_t ADD[4] = {2, 10, 9, 5};
+        int root = ((h_v(0) % 12) + 12) % 12, a;
+        for (a = 0; a < 4 && n < 5; a++) {
+            int c = ((scale_fit(key_root() + root + ADD[a]) - key_root()) % 12 + 12) % 12;
+            for (k = 0; k < n && pc[k] != c; k++)
+                ;
+            if (k == n)
+                pc[n++] = c;
+        }
+    }
     for (j = 1; j < n; j++)              /* lowest first */
         for (k = j; k > 0 && pc[k - 1] > pc[k]; k--) {
             int x = pc[k];
@@ -393,8 +406,7 @@ static void move_sounds(uint32_t t, uint32_t step)
     check = c_in_check(&after, after.side);
     k_on(t, a, 92, SL_MOVE, 0.6f);
     k_on(t + step, b, 104, SL_MOVE, 1.2f);
-    if (pending_blunder)                 /* a wrong note, on purpose */
-        k_on(t + step, b + 1, 70, SL_MOVE, 0.8f);
+    /* (a blunder used to add a wrong note, a semitone off: gone, Nick 19 Nov 2026, it wasn't musical) */
     if (m.cap) {                         /* a capture: a swell under the taken piece */
         int n = piece_note(m.cap, m.to) - 12;
         k_on(t + step, n, 70, SL_SWELL, 1.6f);
@@ -1146,8 +1158,8 @@ static void autofire_tick(void)          /* held past a tap: a shot on each eigh
         af_since = ms | 1u;
     while (af_r != af_w && (int32_t)(ms - af_q[af_r % 8u]) >= 0) {
         af_r++;
-        if (held && ms - af_since >= 220u && (mode == M_SWARM || mode == M_DRIFT))
-            act(D_SEL), af_n++;
+        if (held && (int32_t)(ms - af_since) >= 220 && (mode == M_SWARM || mode == M_DRIFT) && !game_over_now())
+            act(D_SEL), af_n++;   /* (never after the end: a new game takes a fresh press, GPT's review) */
     }
 }
 static int repeats(int d)
@@ -1935,7 +1947,8 @@ static const help_t HELP_MENU[] = {{"PAD", "MOVE"}, {"F5", "OPEN THE GAME"}, {"U
                                    {"PRESET", "SCALE, FOR EVERY GAME"}, {"ALGO", "KEY, FOR EVERY GAME"},
                                    {"HOME", "BACK HERE FROM A GAME"}, {0, 0}};
 static const help_t HELP_BRICK[] = {{"LEFT RIGHT", "MOVE THE PADDLE"}, {"F5", "LAUNCH THE BALL"}, H_SEQ, {0, 0}};
-static const help_t HELP_SWARM[] = {{"PAD", "MOVE THE ROCKET"}, {"F5", "FIRE (HOLD: ON THE BEAT)"}, H_SEQ, {0, 0}};
+static const help_t HELP_SWARM[] = {{"PAD", "MOVE THE ROCKET"}, {"F5", "FIRE (HOLD: ON THE BEAT)"},
+                                    {"CATCH D S B", "DOUBLE, SHIELD, BOMB"}, H_SEQ, {0, 0}};
 static const help_t HELP_DRIFT[] = {{"LEFT RIGHT", "TURN"}, {"UP", "THRUST"}, {"F5", "FIRE (HOLD: ON THE BEAT)"}, H_SEQ,
                                     {0, 0}};
 static const help_t HELP_CHESS[] = {{"PAD", "MOVE THE CURSOR"}, {"F5", "PICK A PIECE, THEN ITS SQUARE"},
@@ -2265,9 +2278,23 @@ int app_expect(const char *what, int *got)
     } else if (!strcmp(what, "sw_power")) {   /* (a test: a power-up, caught) */
         sw.pu_on = 1, sw.pu_kind = 0, sw.pu_x = sw.px, sw.pu_y = sw.py + 8.0f;
         *got = 0;
+    } else if (!strcmp(what, "sw_shield")) {   /* (a test: a SHIELD power-up falling, just above you) */
+        sw.pu_on = 1, sw.pu_kind = 1, sw.pu_x = sw.px, sw.pu_y = sw.py - 30.0f;
+        *got = 0;
+    } else if (!strcmp(what, "sw_bomb")) {   /* (a test: a BOMB power-up falling, just above you) */
+        sw.pu_on = 1, sw.pu_kind = 2, sw.pu_x = sw.px, sw.pu_y = sw.py - 30.0f;
+        *got = 0;
     } else if (!strcmp(what, "sw_god")) {   /* (a test: nothing hurts you for a minute) */
         sw.hurt_until = plat_ms() + 60000u;
         *got = 1;
+    } else if (!strcmp(what, "sw_double")) {   /* (a test: DOUBLE, for a while) */
+        sw.pow = 1, sw.pow_until = plat_ms() + 60000u, sw_pairs = 0;
+        *got = 0;
+    } else if (!strcmp(what, "af_reset")) {
+        af_n = 0;
+        *got = 0;
+    } else if (!strcmp(what, "sw_pairs")) {
+        *got = sw_pairs;
     } else if (!strcmp(what, "af_n"))
         *got = af_n;
     else if (!strcmp(what, "sw_pow"))
@@ -2408,6 +2435,8 @@ int app_expect(const char *what, int *got)
         *got = sw.tier;
     else if (!strcmp(what, "sw_steps"))      /* the flock's wingbeats this wave */
         *got = sw.mq_r;
+    else if (!strcmp(what, "sw_wave"))
+        *got = sw.wave;
     else if (!strcmp(what, "sw_left"))       /* bugs still flying */
         *got = sw.n_alive;
     else if (!strcmp(what, "sw_jar"))        /* the jar's slots filled */
@@ -2487,6 +2516,17 @@ int app_expect(const char *what, int *got)
         *got = mi.opened;
     else if (!strcmp(what, "mi_over"))
         *got = mi.over;
+    else if (!strcmp(what, "mi_press_ahead")) {   /* (a test: a press stamped a ms ahead, as | 1 does at an even
+                                          * time on the FM-1, then the tick at once: it must not flag) */
+        int x, y, n2 = 0;
+        mi.a_down = plat_ms() + 1u, mi.a_flagged = 0;
+        mi_tick();
+        mi.a_down = 0;
+        for (y = 0; y < MI_H; y++)
+            for (x = 0; x < MI_W; x++)
+                n2 += mi.flag[y][x];
+        *got = n2;
+    }
     else if (!strcmp(what, "mi_cur_open"))
         *got = mi.open[mi.cy][mi.cx];
     else if (!strcmp(what, "mi_flags")) {

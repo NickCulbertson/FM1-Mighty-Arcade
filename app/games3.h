@@ -147,7 +147,8 @@ static void li_sounds(void)
 static void li_scene(void)
 {
     int i;
-    char t[24], n[8];
+    char t[40], n[8];                    /* ("LEVEL 12  MOVES 123 / PAR 14": was 24, too small: GPT's review,
+                                          * 19 Nov 2026) */
     uint32_t now = k_now();
     tcpy(t, "LEVEL ");
     itos((int32_t)li.level + 1, n);

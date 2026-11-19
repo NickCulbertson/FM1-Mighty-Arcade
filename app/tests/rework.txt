@@ -56,3 +56,27 @@ wait 2000
 key 24 up
 expect af_n >4
 expect af_n <14
+# SHIELD: a capsule caught, then a hit is blocked (no life lost)
+expect sw_shield 0
+wait 120
+shot sw_capsule.png
+wait 600
+expect sw_pow 2
+shot sw_shield.png
+# BOMB: caught, every droid in the sky is down (the next wave comes in)
+expect sw_wave 0
+expect sw_bomb 0
+wait 120
+shot sw_bomb_falling.png
+wait 600
+expect sw_wave 1
+shot sw_bomb.png
+# DOUBLE held: a pair on every eighth (four shots in the air at most)
+expect sw_god 1
+expect sw_double 0
+expect af_reset 0
+key 24 down
+wait 2000
+key 24 up
+expect af_n >4
+expect sw_pairs >4
