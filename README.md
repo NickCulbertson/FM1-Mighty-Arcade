@@ -1,7 +1,6 @@
 # Mighty Arcade for the M-VAVE FM-1
 
-Custom firmware for the M-VAVE FM-1. Mighty Arcade, from the creator of Mighty Arp, is eighteen casual games that
-make generative music as you play. Every game is a sequencer: the board, the cards, the balls you sink and the
+Custom firmware for the M-VAVE FM-1. Mighty Arcade, from the creator of Mighty Arp, is eighteen music-making games. Every game is a sequencer: the board, the cards, the balls you sink and the
 creatures you catch are the notes, a playhead plays them in time, and the drums come in as you get further.
 
 - **Try it in your browser** (no FM-1 needed): <https://nickculbertson.github.io/FM1-Mighty-Arcade/emu/>
