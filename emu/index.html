@@ -77,10 +77,31 @@ a { color: var(--accent); }
 .help ul { padding-left: 1.1rem; }
 kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--ink); }
 </style>
+<style id="QG_STYLE">
+html:root:root { --ground: #000; --ink: #f1ecff; --muted: #a99bc9; --rule: #32204f; --accent: #ff2e97; --teal: #6ee1ff;
+                 --card: #100a1c; --bad: #ff6b8b; --focus: #ffe200; color-scheme: dark; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+header { align-items: center; padding-bottom: .8rem; border-bottom: 1px solid var(--rule); margin-bottom: 1.2rem; }
+h1 { font: 700 2.4rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: .04em; text-transform: uppercase; }
+h1 a { text-decoration: none; }
+h1 .m { color: #6ee1ff; }
+h1 .a { color: #ff2e97; }
+header p.qg-hint { color: #6ee1ff; text-transform: uppercase; letter-spacing: .08em; font-size: .9rem; margin-left: auto; }
+header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; border-color: var(--rule); background: var(--card); }
+.start button { background: #ff2e97; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.start button:hover, .start button:focus-visible { background: #ffe200; }
+.held .btnface, .held .keyface { stroke: #ff2e97; }
+.latched .btnface, .latched .keyface { stroke: #6ee1ff; }
+.bar button, .speak button { border-color: var(--rule); }
+.bar button:hover, .speak button:hover { border-color: #ffe200; }
+.speak summary h2 { color: #6ee1ff; text-transform: uppercase; letter-spacing: .06em; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1rem; }
+</style>
 </head>
 <body>
 <header>
-  <h1>Mighty Arcade</h1>
+  <h1><a href="../"><span class="m">Mighty</span> <span class="a">Arcade</span></a></h1>
+  <p class="qg-hint">Use the <kbd>arrows</kbd> and <kbd>Space</kbd> to navigate</p>
 </header>
 <main>
 <h2 class="sr">The FM-1</h2>
@@ -521,9 +542,9 @@ addEventListener("keyup", (e) => {
 }, true);
 // the keys only reach a focused page: say so when it is not, and a click anywhere takes them back
 const qgFocus = document.createElement("div");
-qgFocus.textContent = "Click here to play with the keyboard (arrows move, Enter selects)";
-qgFocus.style.cssText = "position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:99;padding:10px 18px;" +
-  "border-radius:10px;background:#FFD23F;color:#0B0814;font:600 15px system-ui,sans-serif;cursor:pointer;" +
+qgFocus.textContent = "Click here to play with the keyboard (arrows move, Space selects)";
+qgFocus.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99;padding:10px 18px;" +
+  "border-radius:10px;background:#ffe200;color:#000;font:600 15px system-ui,sans-serif;cursor:pointer;" +
   "box-shadow:0 4px 16px rgba(0,0,0,.4);display:none";
 document.body.appendChild(qgFocus);
 const qgShow = () => { qgFocus.style.display = document.hasFocus() ? "none" : "block"; };
