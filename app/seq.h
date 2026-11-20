@@ -44,15 +44,20 @@ static int sq_roll(int g) { return kr() % 100u < sq_cfg[g].chance; }   /* the pl
 #define SQ_DOUBLE 5
 static const char *const SQ_TIER_NAME[SQ_TOP + 1] = {"", "HI-HATS", "KICK DRUM", "SNARE", "FULL KIT", "DOUBLE TIME"};
 static uint8_t sq_brk;                   /* bars of a half-time breakdown left (0: none) */
+static uint32_t sq_bars;                 /* bars the drums have played (breakdowns start on a four-bar phrase) */
 static void sq_drums(uint32_t t, uint32_t p, int tier, uint32_t hat, uint32_t kick, uint32_t snare, uint32_t vel)
 {
     int half, full;
     if (tier > SQ_TOP)
         tier = SQ_TOP;
-    if (p == 0u) {                       /* a bar: a breakdown going on, or (one bar in five) one starting */
+    if (p == 0u) {                       /* a bar: a breakdown going on, or one starting: only at the head of a
+                                          * four-bar phrase, one phrase in five (about once a minute; one bar in five
+                                          * was too often, Nick 19 Nov 2026) */
+        int was = sq_brk != 0;
+        sq_bars++;
         if (sq_brk)
             sq_brk--;
-        if (!sq_brk && tier >= 4 && (kr() >> 16) % 100u < 20u)   /* (one bar in five: Nick, 19 Nov 2026) */
+        if (!sq_brk && !was && tier >= 4 && sq_bars % 4u == 0u && (kr() >> 16) % 100u < 20u)
             sq_brk = 2;
         if (tier < 4)
             sq_brk = 0;
