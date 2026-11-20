@@ -7,21 +7,21 @@ Mighty Arcade, from the creator of Mighty Arp, is custom firmware for the M-VAVE
 
 ![The menu](app/docs/img/menu.png) ![SOLITAIRE](app/docs/img/solitaire.png) ![BOUNCE](app/docs/img/bounce.png)
 
-## The games
+## The Games
 
 ![All 18 games](app/docs/img/games.png)
 
 | Page 1 | | |
 | --- | --- | --- |
-| **DRIFT**: steer among rocks; a radar sweep plays them | **BOUNCE**: break the wall; a playhead plays its columns | **SWARM**: shoot the swarm; each catch lands in an eight-step loop |
-| **CHESS**: against the computer or a friend; the board is the score | **DICE SYNTH**: roll a new FM sound and play it on the keys | **SOLITAIRE**: Klondike; the columns are an ambient sequencer |
-| **WORM**: a worm on the beat, playing every note it has eaten | **CUBES**: pop colours and free the note gems | **DEFUSE**: clear the field; the numbers you open are the tune |
+| **DRIFT**: steer among rocks, a radar sweep plays them | **BOUNCE**: break the wall, a playhead plays its columns | **SWARM**: shoot the swarm, each catch lands in an eight-step loop |
+| **CHESS**: against the computer or a friend, the board is the score | **DICE SYNTH**: roll a new FM sound and play it on the keys | **SOLITAIRE**: Klondike, the columns are an ambient sequencer |
+| **WORM**: a worm on the beat, playing every note it has eaten | **CUBES**: pop colors and free the note gems | **DEFUSE**: clear the field, the numbers you open are the tune |
 
 | Page 2 | | |
 | --- | --- | --- |
-| **GOLF**: three courses of nine; every bank is a note | **PINBALL**: a two-screen table; the bumpers play the chord | **DODGE**: a rolling marble in a box of note tiles |
-| **DARK**: turn every light off as the music quiets | **DROP**: drop balls through tilting platforms (the knobs tilt them) | **POOL**: sink the balls; each pocket is a note in the loop |
-| **ROWS**: four in a row; each column is a note | **2048**: merge tiles up the scale | **CHECKERS**: every move and jump lands on its note |
+| **GOLF**: three courses of nine, every bank is a note | **PINBALL**: a two-screen table, the bumpers play the chord | **DODGE**: a rolling marble in a box of note tiles |
+| **DARK**: turn every light off as the music quiets | **DROP**: drop balls through tilting platforms (the knobs tilt them) | **POOL**: sink the balls, each pocket is a note in the loop |
+| **ROWS**: four in a row, each column is a note | **2048**: merge tiles up the scale | **CHECKERS**: every move and jump lands on its note |
 
 ## Quick start
 
