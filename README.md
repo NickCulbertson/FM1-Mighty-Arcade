@@ -1,7 +1,8 @@
 # Mighty Arcade for the M-VAVE FM-1
 
-Custom firmware for the M-VAVE FM-1. Mighty Arcade, from the creator of Mighty Arp, is eighteen music-making games. Every game is a sequencer: the board, the cards, the balls you sink and the
-creatures you catch are the notes, a playhead plays them in time, and the drums come in as you get further.
+Mighty Arcade, from the creator of Mighty Arp, is custom firmware for the M-VAVE FM-1: 18 music-making games. Every
+game is built around a generative sequencer: the board, the cards, the balls and the creatures all work together to
+make generative music while you play.
 
 - **Try it in your browser** (no FM-1 needed): <https://nickculbertson.github.io/FM1-Mighty-Arcade/emu/>
 - **Install it** (Chrome or Edge, with the FM-1 plugged in): <https://nickculbertson.github.io/FM1-Mighty-Arcade/install/>
@@ -9,6 +10,8 @@ creatures you catch are the notes, a playhead plays them in time, and the drums 
 ![The menu](app/docs/img/menu.png) ![SOLITAIRE](app/docs/img/solitaire.png) ![BOUNCE](app/docs/img/bounce.png)
 
 ## The games
+
+![All 18 games](app/docs/img/games.png)
 
 | Page 1 | | |
 | --- | --- | --- |
@@ -24,15 +27,11 @@ creatures you catch are the notes, a playhead plays them in time, and the drums 
 
 ## Quick start
 
-1. **The controls are a game pad.** Your left hand plays the pad on the lowest keys (**F3** left, **F#3** up,
-   **G3** down, **A3** right) and your right hand presses **F5** to select (the games' hints call it the TOP KEY).
-   Only the keys a game uses light up. **EDIT** shows what every control does in the game on screen (in DICE SYNTH, **GLO**).
-2. **Pick a game** from the menu: two pages of nine, right off the edge for the second. **HOME** comes back from any
-   game. Up from the top row is the **PLAYERS** switch: 1, or 2 taking turns.
-3. **In every game**, **PRESET** sets the scale and **ALGORITHM** the key, shared by all of them (G to start).
-   In CHESS, CHECKERS and ROWS, **SELECT** sets how well the computer plays.
-4. **In the sequencer games**, **KNOB 1** is the tempo, **KNOB 2** the chance a note sounds, **KNOB 3** the sound and
-   **KNOB 4** how loud the game's effects are. Turn it to 0 and only the music plays.
+- **Play:** the lowest keys are the pad (**F3** left, **F#3** up, **G3** down, **A3** right); **F5** selects.
+  **EDIT** shows every control for the game on screen.
+- **Menu:** two pages of nine. **HOME** comes back from any game; up from the top row picks 1 or 2 players.
+- **Music:** **PRESET** sets the scale and **ALGORITHM** the key, for every game. In the sequencer games the knobs
+  are tempo, chance, sound and effects volume.
 
 Mighty Arcade also gives the [FM-1 Screen Reader](https://charlesvestal.github.io/fm1-reader/) the words on its
 screen.
