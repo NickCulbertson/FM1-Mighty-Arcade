@@ -10,7 +10,7 @@ creatures you catch are the notes, a playhead plays them in time, and the drums 
 
 | Page 1 | | |
 | --- | --- | --- |
-| **BOUNCE**: break the wall; a playhead plays its columns | **SWARM**: shoot the swarm; each catch lands in an eight-step loop | **DRIFT**: steer among rocks; a radar sweep plays them |
+| **DRIFT**: steer among rocks; a radar sweep plays them | **SWARM**: shoot the swarm; each catch lands in an eight-step loop | **BOUNCE**: break the wall; a playhead plays its columns |
 | **CHESS**: against the computer or a friend; the board is the score | **DICE SYNTH**: roll a new FM sound and play it on the keys | **SOLITAIRE**: Klondike; the columns are an ambient sequencer |
 | **WORM**: a worm on the beat, playing every note it has eaten | **CUBES**: pop colours and free the note gems | **DEFUSE**: clear the field; the numbers you open are the tune |
 

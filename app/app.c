@@ -597,7 +597,7 @@ static void select_here(void)
  * in the middle with CHESS and SOLITAIRE, WORM, CUBES and DEFUSE below. Page 2, the rest, DROP in its middle and POOL
  * beside it (Nick, 17 Nov 2026) */
 enum { M_MENU,
-       M_BRICK, M_SWARM, M_DRIFT,        /* page 1 */
+       M_DRIFT, M_SWARM, M_BRICK,        /* page 1 (DRIFT first, BOUNCE third: Nick, 19 Nov 2026) */
        M_CHESS, M_DICE, M_SOLI,
        M_SNAKE, M_CUBE, M_MINES,
        M_GOLF, M_PINBALL, M_BOUNCE,      /* page 2 */
@@ -606,13 +606,13 @@ enum { M_MENU,
        NMODE };
 static uint8_t help_on;                  /* EDIT's controls overlay is up (help_scene) */
 static const char *const MODE_NAME[NMODE] = {"MENU",
-                                             "BOUNCE", "SWARM", "DRIFT",
+                                             "DRIFT", "SWARM", "BOUNCE",
                                              "CHESS", "DICE SYNTH", "SOLITAIRE",
                                              "WORM", "CUBES", "DEFUSE",
                                              "GOLF", "PINBALL", "DODGE",
                                              "DARK", "DROP", "POOL",
                                              "ROWS", "2048", "CHECKERS"};
-static uint8_t mode = M_MENU, menu_at = M_DICE;   /* menu_at 0: the PLAYERS switch */
+static uint8_t mode = M_MENU, menu_at = M_DRIFT;   /* menu_at 0: the PLAYERS switch; DRIFT first lit (Nick, 19 Nov 2026) */
 /* K4 in the games: how loud their effects are (kit.h's k_fx); chess (its knobs its own), the menu and DICE SYNTH
  * (an instrument, its knobs its own) keep theirs */
 static uint8_t fx_level = 100;
