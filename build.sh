@@ -19,7 +19,7 @@ fi
 if ! command -v emcc >/dev/null 2>&1 && [ -f "${EMSDK:-$HOME/emsdk}/emsdk_env.sh" ]; then
     . "${EMSDK:-$HOME/emsdk}/emsdk_env.sh" >/dev/null 2>&1
 fi
-"$PY" base/tools/build.py app "$@"
+"$PY" tools/xxyy.py build.py app "$@"            # fm1-base's build, with the 8-digit release identity (as Mighty Arp)
 case " $* " in
 *" --web "*) "$PY" tools_arrows.py app/build/emu/index.html   # the arrows and Enter play the cursor
     sed -i.bak 's/MightyArcade/Mighty Arcade/g' app/build/emu/index.html && rm -f app/build/emu/index.html.bak ;;

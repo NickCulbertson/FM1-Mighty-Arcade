@@ -1,6 +1,6 @@
 # Mighty Arcade on fm1-base (tools/build.py), from Mighty Arp's stack
 name = "MightyArcade"
-id_prefix = "FM-1_6281"
+id_prefix = "FM-1_6281"       # package identity: dev FM-1_628100, releases FM-1_6281XXYY (tools/xxyy.py, as Mighty Arp: 1.0 is FM-1_62810100, 8 digits, the Firmware Hub's longest)
 usb_manufacturer = "Nick Culbertson"
 usb_product = "Mighty Arcade FM-1"
 o2 = ["dsp/engine.c"]          # the sound, compiled at -O2 (the unity build is -Os)
