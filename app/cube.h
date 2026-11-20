@@ -536,9 +536,9 @@ static void cu_groove(uint32_t t, uint32_t step)
         return;
     if (p % 2u == 0u)
         k_on(t, 90, p % 4u ? 40 : 60, CS_HAT, 0.04f);
-    if (p % 4u == 0u || (p % 4u == 3u && lv >= 4u))
+    if (p % 4u == 0u)                    /* (straight quarters at every level: the pickups from level 4 read as funk) */
         k_on(t, bass + (p == 8u ? 12 : 0), 88, CS_BASS, 0.12f);
-    if (lv >= 2u && (p == 0u || p == 8u || (lv >= 5u && p == 10u)))
+    if (lv >= 2u && (p == 0u || p == 8u))  /* (the kick on one and three only: the and of three read as funk) */
         k_on(t, 36, 100, CS_KICK, 0.2f);
     if (lv >= 3u && (p == 4u || p == 12u))
         k_on(t, 50, 84, CS_SNARE, 0.2f);
