@@ -1100,10 +1100,8 @@ static void act(int d)                   /* a direction or a select, to the game
                 k_on(0, h_tone(players == 2 ? 8 : 6), 80, SS_PICK, 0.4f);
             } else if (players == 2 && solo_game(menu_at))
                 app_say(MODE_NAME[menu_at], "IS ONE PLAYER");
-            else {
-                enter(menu_at);
-                app_say(mode == M_DICE ? "GLO:" : "EDIT:", "CONTROLS");   /* where the controls are, in the header */
-            }
+            else
+                enter(menu_at);              /* (no "EDIT: CONTROLS" hint over the title any more: Nick, 20 Nov 2026) */
         }
         break;
     case M_CHESS:
