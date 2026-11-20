@@ -929,7 +929,8 @@ static void groove_run(void)
         case M_POOL: po_groove(gr_next_t, gr_step); break;
         default: so_groove(gr_next_t, gr_step); break;
         }
-        if ((mode == M_SWARM || mode == M_DRIFT) && gr_step % 2u == 0u && (uint8_t)(af_w - af_r) < 8u)
+        if ((((mode == M_SWARM || mode == M_DRIFT) && gr_step % 2u == 0u) || mode == M_PINBALL) &&
+            (uint8_t)(af_w - af_r) < 8u)        /* (eighths; PINBALL's flippers, sixteenths) */
             af_q[af_w++ % 8u] = sq_ms(gr_next_t);   /* (an eighth: auto-fire's moment) */
         if (mode != M_MENU && mode != M_DICE)
             music_layer(gr_next_t, gr_step, six);
@@ -948,7 +949,7 @@ static struct {
 } mn;
 static void menu_roll(void)
 {
-    static const uint8_t TIER[8] = {0, 0, 1, 2, 3, 4, 5, 6};
+    static const uint8_t TIER[8] = {0, 0, 1, 2, 3, 4, 5, 5};
     int c;
     mn.tier = TIER[(kr() >> 16) % 8u];
     mn.keys = (uint8_t)((kr() >> 16) % 2u);
@@ -1160,6 +1161,11 @@ static void autofire_tick(void)          /* held past a tap: a shot on each eigh
         af_r++;
         if (held && (int32_t)(ms - af_since) >= 220 && (mode == M_SWARM || mode == M_DRIFT) && !game_over_now())
             act(D_SEL), af_n++;   /* (never after the end: a new game takes a fresh press, GPT's review) */
+        if (mode == M_PINBALL && (ui.keys >> PB_AUTO_KEY & 1u) && !pb.over) {   /* PINBALL: F#5 held, both
+                                          * flippers flip on every sixteenth (Nick, 19 Nov 2026) */
+            pb_auto_until[0] = pb_auto_until[1] = ms + 60u;
+            pb_flaps++;
+        }
     }
 }
 static int repeats(int d)
@@ -1229,10 +1235,6 @@ static void input(void)
     if (pressed >> B_HOME & 1u && mode != M_MENU) {   /* HOME: the menu, from any game */
         enter(M_MENU);
         app_say("MENU", "");
-    }
-    if (pressed >> B_ARP & 1u && mode == M_PINBALL) {   /* PINBALL: AUTO FLIP on and off */
-        pb_auto ^= 1u;
-        app_say("AUTO FLIP", pb_auto ? "ON" : "OFF");
     }
     if (pressed >> B_PLAY & 1u && mode == M_SOLI) {
         so_deal();
@@ -1413,7 +1415,7 @@ static void input(void)
                                           * half lit otherwise, so it stands out from the unused ones */
         if (mode != M_CHESS)
             plat_leds((mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
-                      (mode == M_PINBALL && pb_auto ? 1u << B_ARP : 0u) | btn) | (help_on ? hb : 0u), lit | keys);
+                      btn) | (help_on ? hb : 0u), lit | keys | (mode == M_PINBALL ? 1u << PB_AUTO_KEY : 0u));
         else
         plat_leds((st.paused ? 0u : 1u << B_PLAY) | 1u << B_HOME | (st.vs ? 1u << B_SEL : 0u) |
                   (st.vs && you.from >= 0 ? 1u << B_OCTDN : 0u) | btn | (help_on ? hb : 0u), lit | keys);
@@ -1976,7 +1978,7 @@ static const help_t HELP_MINES[] = {{"PAD", "MOVE"}, {"F5", "OPEN A SQUARE"}, {"
 static const help_t HELP_GOLF[] = {{"UP DOWN", "PICK A COURSE"}, {"LEFT RIGHT", "AIM (HOLD: FASTER)"},
                                    {"HOLD F5", "POWER, LET GO TO PUTT"}, H_FX, {0, 0}};
 static const help_t HELP_PINBALL[] = {{"LEFT (F3)", "LEFT FLIPPERS"}, {"G5 OR RIGHT", "RIGHT FLIPPERS"},
-                                      {"ARP", "AUTO FLIP ON / OFF"},
+                                      {"HOLD F#5", "FLIPPERS FLIP ON THE BEAT"},
                                       {"HOLD F5", "PLUNGER, LET GO TO LAUNCH"}, {"UP", "NUDGE"}, H_FX, {0, 0}};
 static const help_t HELP_BOUNCE[] = {{"PAD", "ROLL THE MARBLE"}, {"K1", "TEMPO"}, {"K2", "SPEED"}, {"K3", "SOUND"},
                                      {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
@@ -2145,7 +2147,7 @@ void app_frame(void)
     case M_BRICK: if (!(players == 2 && tp.phase)) br_tick(); break;
     case M_SWARM: if (!(players == 2 && tp.phase)) sw_tick(), autofire_tick(); break;
     case M_DRIFT: if (!(players == 2 && tp.phase)) dr_tick(), autofire_tick(); break;
-    case M_PINBALL: pb_tick(); break;
+    case M_PINBALL: pb_tick(), autofire_tick(); break;
     case M_GOLF: gf_tick(); break;
     case M_DROP: dp_tick(); break;
     case M_BOUNCE: bx_tick(); break;
@@ -2275,17 +2277,8 @@ int app_expect(const char *what, int *got)
         *got = pb.balls;
     else if (!strcmp(what, "pb_over"))
         *got = pb.over;
-    else if (!strcmp(what, "pb_auto_drop")) {   /* (a test: AUTO FLIP on, a ball dropping onto the left flipper) */
-        pb_auto = 1;
-        pb.b[0].on = 1, pb.b[0].lane = 0, pb.b[0].held = 0, pb.b[0].fly = 0;
-        pb.b[0].x = PB_FL[0][0] + 20.0f, pb.b[0].y = PB_FL[0][1] - 4.0f, pb.b[0].vx = 0.0f, pb.b[0].vy = 0.2f;
-        *got = 0;
-    } else if (!strcmp(what, "pb_flip0_up"))   /* the left flipper well up from rest (1) */
-        *got = pb.ang[0] < PB_FL[0][3] - 0.3f;
-    else if (!strcmp(what, "pb_auto_off")) {
-        pb_auto = 0;
-        *got = 0;
-    }
+    else if (!strcmp(what, "pb_flaps"))   /* AUTO FLIP's flips */
+        *got = pb_flaps;
     else if (!strcmp(what, "pb_boss"))     /* the boss's hit points */
         *got = pb.boss_hp;
     else if (!strncmp(what, "pb_mon_", 7)) {   /* (a test: pb_mon_K_H, monster K at H hit points of 9) */

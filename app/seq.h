@@ -36,17 +36,29 @@ static uint32_t sq_ms(uint32_t t)        /* when a note scheduled for sample t s
 }
 static int sq_roll(int g) { return kr() % 100u < sq_cfg[g].chance; }   /* the playhead's note: does it sound */
 
-/* the drums, by how far you've got (0 .. 6): hi-hats, the kick, the snare, the full kit, double time, then half time
- * last (the kick on one, the snare on three: Nick, 19 Nov 2026, it sounds so good when it lands there). p: the
- * sixteenth in the bar. vel: 100 as loud as the game likes them */
-#define SQ_TOP 6
+/* the drums, by how far you've got (0 .. 5): hi-hats, the kick, the snare, the full kit, then double time. Half time
+ * (the kick on one, the snare on three) isn't a step any more but a surprise (Nick, 19 Nov 2026: every game ended in
+ * it): with the full kit or double time going, now and then a bar drops into half time for two bars, then the groove
+ * comes back. p: the sixteenth in the bar. vel: 100 as loud as the game likes them */
+#define SQ_TOP 5
 #define SQ_DOUBLE 5
-#define SQ_HALF 6
-static const char *const SQ_TIER_NAME[SQ_TOP + 1] = {"", "HI-HATS", "KICK DRUM", "SNARE", "FULL KIT", "DOUBLE TIME",
-                                                     "HALF TIME"};
+static const char *const SQ_TIER_NAME[SQ_TOP + 1] = {"", "HI-HATS", "KICK DRUM", "SNARE", "FULL KIT", "DOUBLE TIME"};
+static uint8_t sq_brk;                   /* bars of a half-time breakdown left (0: none) */
 static void sq_drums(uint32_t t, uint32_t p, int tier, uint32_t hat, uint32_t kick, uint32_t snare, uint32_t vel)
 {
-    int half = tier == SQ_HALF, full = tier >= 4 && !half;
+    int half, full;
+    if (tier > SQ_TOP)
+        tier = SQ_TOP;
+    if (p == 0u) {                       /* a bar: a breakdown going on, or (one bar in five) one starting */
+        if (sq_brk)
+            sq_brk--;
+        if (!sq_brk && tier >= 4 && (kr() >> 16) % 100u < 20u)   /* (one bar in five: Nick, 19 Nov 2026) */
+            sq_brk = 2;
+        if (tier < 4)
+            sq_brk = 0;
+    }
+    half = sq_brk && tier >= 4;
+    full = tier >= 4 && !half;
     if (tier >= 1 && (half ? (p & 1u) == 0u : (p % 4u == 2u || (full && (p & 1u)))))   /* hats: the off-beats, then
                                           * every sixteenth (half time: the eighths) */
         k_on(t, 92, (p % 4u == 2u ? 54u : half ? 34u : 30u) * vel / 100u, hat, 0.05f);
@@ -54,13 +66,12 @@ static void sq_drums(uint32_t t, uint32_t p, int tier, uint32_t hat, uint32_t ki
         k_on(t, 36, (p == 10u ? 80u : 104u) * vel / 100u, kick, 0.3f);
     if (tier >= 3 && (half ? p == 8u : (p == 4u || p == 12u)))
         k_on(t, 50, (half ? 100u : 90u) * vel / 100u, snare, half ? 0.4f : 0.25f);
-    if (tier == SQ_DOUBLE && p == 15u)    /* a ghost into the bar (not in half time: its one snare, on three, alone:
-                                          * Nick, 19 Nov 2026) */
+    if (tier == SQ_DOUBLE && !half && p == 15u)   /* a ghost into the bar (not in half time: its snare on three alone) */
         k_on(t, 50, 36u * vel / 100u, snare, 0.1f);
 }
 static int sq_tier_of(int done, int total)   /* how far: the share done (of total) as a tier */
 {
-    static const uint8_t AT[SQ_TOP + 1] = {0, 15, 30, 45, 60, 75, 90};   /* percent */
+    static const uint8_t AT[SQ_TOP + 1] = {0, 15, 30, 48, 66, 85};   /* percent */
     int k = SQ_TOP, pct = total > 0 ? done * 100 / total : 0;
     while (k > 0 && pct < AT[k])
         k--;

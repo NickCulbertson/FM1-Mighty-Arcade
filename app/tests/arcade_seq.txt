@@ -13,7 +13,7 @@ wait 2500
 expect br_tier 3
 expect br_clear10 0
 wait 2500
-expect br_tier 5
+expect br_tier 4
 tap HOME
 wait 300
 expect menu_to_SWARM 1

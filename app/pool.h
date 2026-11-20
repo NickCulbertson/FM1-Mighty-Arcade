@@ -110,7 +110,7 @@ static void po_rack(void)                /* a new table: nine in a diamond, its 
     {
         char rs[12] = "RACK ";
         itos(po.rackn + 1, rs + 5);
-        juice_pop(120, 150, rs, C_CYAN);
+        juice_pop(120, 120, rs, C_CYAN);   /* (the middle, as SWARM's wave: low, its slam fell toward the bottom) */
     }
 }
 static void po_new(void)

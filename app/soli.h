@@ -340,7 +340,7 @@ static void so_nav(int dx, int dy)
  * column, by chance, plays its top card on long, reverby keys, the rank its note (A low, K high; now and then an
  * octave up), and between them now and then another card's sparkles; an empty column rests. Under it a slow chord every two bars, a bass note each bar, and the drums: the more cards you have home,
  * the more of the kit comes in, until the end runs double time */
-static const uint8_t SO_TIER_AT[SQ_TOP + 1] = {0, 5, 12, 19, 26, 34, 42};   /* cards home for each tier */
+static const uint8_t SO_TIER_AT[SQ_TOP + 1] = {0, 5, 12, 20, 30, 40};   /* cards home for each tier */
 static int so_home(void) { return so.nf[0] + so.nf[1] + so.nf[2] + so.nf[3]; }
 static int so_tier(void)
 {

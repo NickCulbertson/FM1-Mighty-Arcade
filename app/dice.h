@@ -261,7 +261,7 @@ static void dc_apply(void)
     p.dec = dgen.dec * len;
     p.sus = dgen.sus;
     p.rel = dgen.rel * len;
-    p.gain = dgen.gain;
+    p.gain = dgen.gain * 2.0f;           /* (twice as loud, +6 dB: Nick, 19 Nov 2026; the kept sounds too) */
     p.filter = dgen.filter;
     p.cut = dgen.filter ? dgen.cut + (bright > 1.0f ? fm_log2f(bright) : fm_log2f(bright) * 0.6f) : 14.0f;
     p.res = dgen.res;

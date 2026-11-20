@@ -319,9 +319,10 @@ static void gf_start_hole(void)
         char hs[12] = "HOLE ";
         itos(gf.hole + 1, hs + 5);
         juice_pop(120, 96, hs, C_CYAN);
-        juice_text(120, 130, h->name, C_YEL);
+        juice_text(120, 172, h->name, C_YEL);   /* (well under HOLE n: it rises as it fades, and at 130 it rose
+                                          * into it: Nick, 19 Nov 2026) */
         if (gf_two())
-            juice_text(120, 150, gf.who ? "PLAYER 2" : "PLAYER 1", gf.who ? C_PINK : C_CYAN);
+            juice_text(120, 196, gf.who ? "PLAYER 2" : "PLAYER 1", gf.who ? C_PINK : C_CYAN);
     }
     k_on(0, h_note(1) + 12, 80, GF_CUP, 0.6f);
     k_on(k_at(0.12f), h_note(3) + 12, 80, GF_CUP, 0.6f);

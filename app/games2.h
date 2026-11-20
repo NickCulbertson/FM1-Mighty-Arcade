@@ -529,8 +529,15 @@ static void mi_tick(void)
                                           * ages and flagged at once, the flag Nick kept getting: 19 Nov 2026) */
         if (!mi.open[mi.cy][mi.cx]) {
             int32_t px = MI_X + mi.cx * MI_C + MI_C / 2, py = MI_Y + mi.cy * MI_C + MI_C / 2;
+            int fx2, fy2, nf = 0;
             mi.flag[mi.cy][mi.cx] ^= 1u;
-            k_on(0, degree_note(mi.flag[mi.cy][mi.cx] ? 11 : 9), 80, NM_FLAG, 0.2f);
+            for (fy2 = 0; fy2 < MI_H; fy2++)
+                for (fx2 = 0; fx2 < MI_W; fx2++)
+                    nf += mi.flag[fy2][fx2];
+            /* the flags climb the chord: the nth flag its nth tone up (an arpeggio rising as the bombs are
+             * marked); one taken back, the tone a step down (Nick, 19 Nov 2026) */
+            k_on(0, h_tone(1 + nf % 10), mi.flag[mi.cy][mi.cx] ? 84u : 60u, NM_FLAG, 0.25f);   /* (two octaves up,
+                                          * then round again: never shrill) */
             mi.flag_at = plat_ms() | 1u;
             mi.flx = mi.cx, mi.fly = mi.cy;
             if (mi.flag[mi.cy][mi.cx]) {

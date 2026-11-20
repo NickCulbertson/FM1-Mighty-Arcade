@@ -72,9 +72,11 @@ static const char *const PB_MON_NAME[PB_NMON] = {"VAMPIRE", "MUMMY", "WEREWOLF",
 
 static uint32_t pb_best;
 static uint8_t pb_cam_lock;
-static uint8_t pb_auto;                  /* AUTO FLIP (ARP): the flippers fire on their own as a ball comes down on
-                                          * them (Nick, 19 Nov 2026: to spare the keys); it lasts between games */
-static uint32_t pb_auto_until[2];         /* each side held by it until then */              /* (a test: the view doesn't follow the ball) */
+static uint32_t pb_auto_until[2];         /* AUTO FLIP: F#5 held flips both flippers on every sixteenth, as a held trigger
+                                          * fires in SWARM (Nick, 19 Nov 2026: to spare the keys); each side up until
+                                          * then */
+static uint16_t pb_flaps;                 /* its flips (a probe) */
+#define PB_AUTO_KEY 25u                  /* F#5 (between the plunger's F5 and the flipper's G5): held, AUTO FLIP */              /* (a test: the view doesn't follow the ball) */
 #define pb (*(pb_t *)g_arena)
 _Static_assert(sizeof(pb_t) <= sizeof g_arena, "pb: the arena is too small");
 #define SY(wy) ((int32_t)(wy) - pb.camy)   /* world y to the screen's */
@@ -701,26 +703,8 @@ static void pb_tick(void)
         k_on(k_at(0.1f), h_note(2) + 1, 70, PB_PAD, 1.6f);
         juice_shake(6, 500);
     }
-    if (pb_auto) {                       /* AUTO FLIP: a ball coming down near a flipper, that side fires */
-        int fl, bk;
-        for (bk = 0; bk < PB_NB; bk++) {
-            pb_ball_t *bb = &pb.b[bk];
-            if (!bb->on || bb->lane || bb->held || bb->fly || bb->vy < 0.03f)
-                continue;
-            for (fl = 0; fl < 4; fl++) {
-                float px = PB_FL[fl][0], py = PB_FL[fl][1], L = PB_FL[fl][2], a = PB_FL[fl][3];
-                float tx = px + L * fm_cosf(a), ty = py + L * fm_sinf(a), lx = tx - px, ly = ty - py;
-                float t = ((bb->x - px) * lx + (bb->y - py) * ly) / (lx * lx + ly * ly), dx, dy;
-                t = t < 0.0f ? 0.0f : t > 1.0f ? 1.0f : t;
-                dx = bb->x - (px + t * lx), dy = bb->y - (py + t * ly);
-                if (dy < 2.0f && dx * dx + dy * dy < (PB_R + 9.0f) * (PB_R + 9.0f) && t > 0.25f)   /* above it,
-                                          * on its outer part: the sweet spot */
-                    pb_auto_until[fl & 1] = now + 160u;
-            }
-        }
-    }
-    keys[0] = HELD_L || (pb_auto && (int32_t)(now - pb_auto_until[0]) < 0);
-    keys[1] = HELD_R || HELD_S1 || (pb_auto && (int32_t)(now - pb_auto_until[1]) < 0);   /* (the right flipper: A3,
+    keys[0] = HELD_L || (int32_t)(now - pb_auto_until[0]) < 0;
+    keys[1] = HELD_R || HELD_S1 || (int32_t)(now - pb_auto_until[1]) < 0;   /* (the right flipper: A3,
                                           * or G5 under the right hand, so a flipper each side: Nick, 19 Nov 2026) */
     for (k = 0; k < 2; k++)              /* a flipper's key: a click, the flipper's sound */
         if (keys[k] && !pb.flip_at[k]) {
@@ -989,6 +973,69 @@ static void pb_monster(int kind, int32_t x, int32_t y, int anger, int hit, uint3
     if ((kind == 0 || kind == 2) && anger < 2) {   /* fangs */
         cv_rect(ox + 7 * 2, oy + (my + 2) * 2, 2, 2, pal[10]);
         cv_rect(ox + 12 * 2, oy + (my + 2) * 2, 2, 2, pal[10]);
+    }
+}
+/* a classic pop bumper (Nick, 19 Nov 2026: the pointed star round a domed cap): drawn from a 37 x 37 map made once,
+ * kept as runs along each row. Kinds: 1 the cap, 2 its lit side, 3 its shaded side, 4 its rim, 5 the skirt, 6 a point
+ * of the star, 7 the edge */
+#define PB_BMP_R 18
+static uint8_t pb_bmp[2 * PB_BMP_R + 1][24][2];   /* each row: (length, kind) runs, kind 0 ends the row */
+static uint8_t pb_bmp_ok;
+static int pb_bmp_kind(int dx, int dy)
+{
+    float r = fm_sqrtf((float)(dx * dx + dy * dy));
+    if (r > 18.4f)
+        return 0;
+    if (r > 17.2f)
+        return 7;
+    if (r > 9.6f) {
+        float seg = 6.2831853f / 12.0f, a = dr_atan2((float)dy, (float)dx) + 6.2831853f, half;
+        a -= seg * (float)(int)(a / seg);
+        a = a - seg * 0.5f;
+        half = 0.28f * (17.2f - r) / (17.2f - 9.6f) + 0.02f;   /* (wide at the cap, a point at the edge) */
+        return (a < 0.0f ? -a : a) < half ? 6 : 5;
+    }
+    if (r > 8.5f)
+        return 4;
+    return dx + dy < -5 ? 2 : dx + dy > 6 ? 3 : 1;
+}
+static void pb_bmp_make(void)
+{
+    int y, x, n, k, run;
+    for (y = 0; y <= 2 * PB_BMP_R; y++) {
+        n = 0;
+        for (x = 0; x <= 2 * PB_BMP_R && n < 23; x += run) {
+            k = pb_bmp_kind(x - PB_BMP_R, y - PB_BMP_R);
+            for (run = 1; x + run <= 2 * PB_BMP_R && run < 255 && pb_bmp_kind(x + run - PB_BMP_R, y - PB_BMP_R) == k; run++)
+                ;
+            pb_bmp[y][n][0] = (uint8_t)run, pb_bmp[y][n][1] = (uint8_t)(k ? k : 8);   /* (8: a gap) */
+            n++;
+        }
+        pb_bmp[y][n][1] = 0;
+    }
+    pb_bmp_ok = 1;
+}
+static void pb_bumper_draw(int32_t cx, int32_t cy, uint16_t cc, int hit)
+{
+    uint16_t col[8];
+    int y, n;
+    if (!pb_bmp_ok)
+        pb_bmp_make();
+    col[1] = RGB(238, 230, 212), col[2] = RGB(255, 250, 240), col[3] = RGB(190, 178, 154);
+    col[4] = mix565(cc, 0, 90), col[5] = RGB(224, 210, 182), col[6] = cc, col[7] = RGB(28, 20, 30);
+    if (hit) {                           /* lit: the cap and skirt flare white, the star bright */
+        for (n = 1; n < 6; n++)
+            col[n] = mix565(col[n], C_INK, 170);
+        col[6] = mix565(cc, C_INK, 110);
+    }
+    for (y = 0; y <= 2 * PB_BMP_R; y++) {
+        int32_t x = cx - PB_BMP_R;
+        for (n = 0; pb_bmp[y][n][1]; n++) {
+            int k = pb_bmp[y][n][1];
+            if (k != 8)
+                cv_rect(x, cy - PB_BMP_R + y, pb_bmp[y][n][0], 1, col[k]);
+            x += pb_bmp[y][n][0];
+        }
     }
 }
 static void pb_wall_draw(int32_t x1, int32_t y1, int32_t x2, int32_t y2)   /* the dungeon's gold-banded stone */
@@ -1308,52 +1355,8 @@ static void pb_scene(void)
                 disc(x + (int32_t)(fm_cosf(an) * 21.0f), y + (int32_t)(fm_sinf(an) * 21.0f), 1, on ? C_YEL : RGB(60, 40, 30));
             }
             disc(x + 2, y + 3, 18, RGB(4, 2, 10));          /* its shadow */
-            disc(x, y, 18, hit ? C_INK : RGB(18, 14, 22));  /* the rubber skirt */
-            disc(x, y, 16, hit ? RGB(255, 240, 170) : RGB(210, 150, 50));   /* the gold ring */
-            disc(x, y + sq, 13, hit ? C_INK : cc);          /* the cap */
-            disc(x - 4, y - 5 + sq, 4, mix565(cc, C_INK, hit ? 255 : 150));   /* its shine */
+            pb_bumper_draw(x, y + sq, cc, hit);             /* the skirt's star, the cap */
             (void)bob;
-            {                            /* a little monster on its cap: a bat, a ghost, a pumpkin, a skull, a spider */
-                int32_t cy = y + sq, ic = i < PB_BOSS ? i : i - 1, k2;
-                uint16_t ink = RGB(14, 10, 20), white = RGB(240, 236, 228);
-                switch (ic) {
-                case 0:                  /* a bat */
-                    disc(x, cy, 3, ink);
-                    pb_thick(x - 9, cy - 3, x - 2, cy, 1, ink);
-                    pb_thick(x + 9, cy - 3, x + 2, cy, 1, ink);
-                    pb_thick(x - 9, cy - 3, x - 6, cy + 2, 0, ink);
-                    pb_thick(x + 9, cy - 3, x + 6, cy + 2, 0, ink);
-                    cv_rect(x - 2, cy - 1, 1, 1, C_PINK), cv_rect(x + 1, cy - 1, 1, 1, C_PINK);
-                    break;
-                case 1:                  /* a ghost */
-                    disc(x, cy - 2, 6, white);
-                    cv_rect(x - 6, cy - 2, 13, 7, white);
-                    cv_rect(x - 6, cy + 5, 3, 2, white), cv_rect(x - 1, cy + 5, 3, 2, white), cv_rect(x + 4, cy + 5, 3, 2, white);
-                    disc(x - 2, cy - 2, 1, ink), disc(x + 2, cy - 2, 1, ink);
-                    break;
-                case 2:                  /* a pumpkin */
-                    disc(x, cy + 1, 7, RGB(255, 140, 30));
-                    cv_rect(x - 1, cy - 8, 3, 3, RGB(60, 140, 50));
-                    cv_rect(x - 4, cy - 1, 2, 2, ink), cv_rect(x + 3, cy - 1, 2, 2, ink);
-                    cv_rect(x - 3, cy + 3, 7, 2, ink);
-                    break;
-                case 3:                  /* a skull */
-                    disc(x, cy - 1, 6, white);
-                    cv_rect(x - 3, cy + 3, 7, 4, white);
-                    disc(x - 2, cy - 1, 2, ink), disc(x + 3, cy - 1, 2, ink);
-                    cv_rect(x - 1, cy + 4, 1, 3, ink), cv_rect(x + 1, cy + 4, 1, 3, ink);
-                    break;
-                default:                 /* a spider */
-                    for (k2 = -1; k2 <= 1; k2 += 2) {
-                        pb_thick(x, cy, x + k2 * 9, cy - 5, 0, ink);
-                        pb_thick(x, cy, x + k2 * 10, cy, 0, ink);
-                        pb_thick(x, cy, x + k2 * 9, cy + 5, 0, ink);
-                    }
-                    disc(x, cy, 4, ink);
-                    cv_rect(x - 2, cy - 2, 1, 1, C_PINK), cv_rect(x + 1, cy - 2, 1, 1, C_PINK);
-                    break;
-                }
-            }
         }
     }
     for (i = 0; i < 4; i++) {            /* the flippers: gold-capped steel */
@@ -1361,7 +1364,7 @@ static void pb_scene(void)
         int32_t px = (int32_t)PB_FL[i][0], py = SY(PB_FL[i][1]);
         int32_t tx = px + (int32_t)(L * fm_cosf(a)), ty = py + (int32_t)(L * fm_sinf(a));
         int up = pb.w[i] != 0.0f || (i & 1 ? HELD_R || HELD_S1 : HELD_L) ||
-                 (pb_auto && (int32_t)(ms - pb_auto_until[i & 1]) < 0);
+                 (int32_t)(ms - pb_auto_until[i & 1]) < 0;
         pb_thick(px + 1, py + 2, tx + 1, ty + 2, 3, RGB(4, 2, 10));
         pb_thick(px, py, tx, ty, 3, RGB(30, 30, 50));
         pb_thick(px, py, tx, ty, 2, up ? C_INK : RGB(170, 180, 200));

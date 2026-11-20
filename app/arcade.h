@@ -626,7 +626,7 @@ static void sw_wave(void)                /* a new swarm: its droids warp in at t
     {
         char ws[12] = "WAVE ";
         itos(sw.wave + 1, ws + 5);
-        juice_pop(120, 150, ws, C_CYAN);
+        juice_pop(120, 110, ws, C_CYAN);   /* (the middle: low, its slam in fell toward the bottom, Nick 19 Nov 2026) */
     }
 }
 static uint32_t sw_bpm(void)             /* TEMPO (K1), a little quicker each wave */

@@ -17,7 +17,7 @@
  *              bar line (up to six), so the music builds the longer you survive, and the drums with it. A hit: back
  *              to one ball, the music drops. A near miss is an accent and points; stars are points. Light all 24
  *              tiles: a full circle. Three balls unlock an exit ring; roll into it for the next level, with solid
- *              musical bumpers to navigate. An earned exit stays open after a hit. K2 sets the speed
+ *              musical bumpers to navigate. A hit loses the stars and closes the exit. K2 sets the speed
  * Both: the more you've lit, the more of the drums come in (seq.h). Their knobs: K1 TEMPO, K2 BOARD or SPEED,
  * K3 SOUND, K4 EFFECTS, PRESET the scale, ALGORITHM the key. */
 
@@ -734,7 +734,8 @@ static void bx_start_level(void)
         tcpy(ex, "GRAB ");
         itos(bx_lv()->exit_balls, ex + 5);
         tcat(ex, " STARS FOR EXIT");
-        if (bx_lv()->intro || bbox.level == 0)   /* (what's new, or on the first level what to do; no more than that) */
+        if (bx_lv()->intro)              /* (only what's new: no "GRAB 2 STARS", people will figure it out, Nick
+                                          * 19 Nov 2026) */
             juice_text(120, 172, bx_lv()->intro ? NEW[bx_lv()->intro] : ex, bx_lv()->intro ? C_YEL : C_GHOST);   /* (well
                                           * under LEVEL n: it rises as it fades, and at 132 it rose into it) */
     }
@@ -807,9 +808,11 @@ static void bx_hurt(int keep)            /* a ball got you: back to one ball (ke
     bbox.nballs = 0;
     for (i = 0; i < BX_NB; i++)
         bbox.nballs += bbox.b[i].on;
-    if (!bbox.exit_on && bbox.stars) {   /* a hit: the stars caught are lost (Nick, 19 Nov 2026); an exit already
-                                          * open stays open */
-        bbox.stars = 0;                  /* (the header's stars go dark: no word for it, Nick 19 Nov 2026: too many) */
+    bbox.stars = 0;                      /* a hit: the stars are lost, and an open exit closes; earn it again (Nick,
+                                          * 19 Nov 2026: in effect, the level again) */
+    if (bbox.exit_on) {
+        bbox.exit_on = 0;
+        juice_ring((int32_t)bbox.ex, (int32_t)bbox.ey, 24, C_PINK, 300);
     }
     bbox.bars = 0;
     bbox.spawn_at = 0;
@@ -1029,7 +1032,7 @@ static void bx_groove(uint32_t t, uint32_t step)
         }
     }
     {                                    /* the drums, by the balls: hats, kick, the full kit, double time, half time */
-        static const uint8_t BT[7] = {0, 0, 1, 2, 4, 5, 6};
+        static const uint8_t BT[7] = {0, 0, 1, 2, 3, 4, 5};
         tier = BT[bbox.nballs > 6 ? 6 : bbox.nballs];
     }
     sq_tier_say(tier, &bbox.tier, -1);
@@ -1114,8 +1117,7 @@ static void bx_scene(void)
                 disc(sx, 10, 2, c);
             }
     }
-    for (i = 0; i < bbox.nballs && i < BX_NB; i++)   /* the balls in play, in the header */
-        disc(124 + i * 8, 10, 2, C_PINK);
+    /* (no count of the balls in the header: they're on the screen; the stars are what it shows, Nick 19 Nov 2026) */
     for (i = 0; i < 24; i++) {           /* the tiles: dim until lit; a note flashes them, bulging in */
         int32_t x, y, w, h, g = dp_glow(bbox.note_ms[i], ms, 240), bulge = g / 64;
         uint16_t col = bx_tcol(i), c;

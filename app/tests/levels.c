@@ -60,7 +60,8 @@ int main(int argc, char **argv)
       assert(bbox.stars == 0); bbox.level = lv; bx_start_level(); bbox.stars = 2; bx_open_exit(); }
     picture(out, "dodge-exit");
     bx_hurt(0);
-    assert(bbox.exit_on && bbox.level == 0 && bbox.nballs == 1);
+    assert(!bbox.exit_on && bbox.stars == 0 && bbox.level == 0 && bbox.nballs == 1);   /* a hit closes the exit */
+    bx_open_exit();                      /* (open again, to test rolling into it) */
     uint32_t score = bbox.score;
     bbox.px = bbox.ex + 16; bbox.py = bbox.ey; bbox.pvx = -0.18f; bbox.pvy = 0;
     ui.keys = 0;

@@ -290,8 +290,9 @@ static void juice_text_(int32_t x, int32_t y, const char *s, uint16_t c, int big
                 oy = J.t[i].y;
                 ow = text_w(J.t[i].big ? &FONT_L : &FONT_M, J.t[i].s);
                 if ((x - w / 2 < J.t[i].x + ow / 2 + 4) && (J.t[i].x - ow / 2 < x + w / 2 + 4) &&
-                    y > oy - (J.t[i].big ? 18 : 16) && y < oy + (J.t[i].big ? 34 : 16)) {
-                    y = J.t[i].big ? oy + 36 : oy - 17;   /* under a big one; over a small one */
+                    y > oy - (J.t[i].big ? 18 : 16) && y < oy + (J.t[i].big ? 64 : 16)) {
+                    y = J.t[i].big ? oy + 66 : oy - 17;   /* under a big one, far enough that its rise (28 px as it
+                                          * fades) stays clear of it (Nick, 19 Nov 2026); over a small one */
                     if (y > 220)
                         y = oy - 18;
                     if (y < 22)
