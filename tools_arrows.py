@@ -39,7 +39,7 @@ h1 a { text-decoration: none; }
 h1 .m { color: #6ee1ff; }
 h1 .a { color: #ff2e97; }
 p.qg-hint { margin: .9rem 0 0; color: var(--ink); }
-p.qg-hint kbd { color: #ffe200; border-color: var(--rule); background: var(--card); }
+p.qg-hint kbd { color: #6ee1ff; border-color: var(--rule); background: var(--card); }
 .start button { background: #ff2e97; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
                 text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
 .start button:hover, .start button:focus-visible { background: #ffe200; }
