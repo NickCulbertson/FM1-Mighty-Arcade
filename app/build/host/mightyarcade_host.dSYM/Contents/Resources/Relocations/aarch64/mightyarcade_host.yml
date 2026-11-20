@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/nickculbertson/Documents/GitProjects/FM1Apps/FM1-Mighty-Arcade/app/build/host/mightyarcade_host'
-relocations:     []
-...
