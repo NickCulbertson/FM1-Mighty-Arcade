@@ -371,7 +371,7 @@ static void ck_scene(void)
     }
     const char *who = ck.over ? "" : players == 2 ? (ck.p.side > 0 ? "P1 (CYAN)" : "P2 (PINK)")
                                                   : ck.p.side > 0 ? "YOUR MOVE" : "THINKING";
-    header("CHECKERS", C_PINK, "", C_PINK, who);
+    header("CHECKERS", C_CYAN, "", C_PINK, who);
     for (r = 0; r < 8; r++)
         for (c = 0; c < 8; c++) {
             int32_t x = 4 + c * 24, y = 25 + (7 - r) * 24, sq = r * 8 + c, pc = ck.p.b[r][c];

@@ -515,7 +515,7 @@ static void so_scene(void)
     itos(so.moves, n);
     tcpy(t, n);
     tcat(t, " MOVES");
-    header("SOLITAIRE", C_CYAN, "", C_CYAN, t);
+    header("SOLITAIRE", C_PINK, "", C_CYAN, t);
     /* the top row */
     if (so.ns)
         so_card(SO_X(0), SO_TOP, so.stock[so.ns - 1] & ~CARD_UP);

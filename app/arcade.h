@@ -449,7 +449,7 @@ static void br_scene(void)
     int r, c;
     char n[12];
     itos((int32_t)br.score, n);
-    header("BOUNCE", C_CYAN, "", C_PINK, n);
+    header("BOUNCE", C_PINK, "", C_PINK, n);
     lives_draw(br.lives);
     for (r = 0; r < 6; r++)
         for (c = 0; c < 10; c++)

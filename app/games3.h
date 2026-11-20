@@ -159,7 +159,7 @@ static void li_scene(void)
     tcat(t, " / PAR ");
     itos(li.par, n);
     tcat(t, n);
-    header("DARK", C_CYAN, "", C_CYAN, t);
+    header("DARK", C_PINK, "", C_CYAN, t);
     for (i = 0; i < 25; i++) {
         int32_t x = 22 + (i % 5) * 40, y = 26 + (i / 5) * 40;
         uint32_t ft = li.flash_t[i];

@@ -595,7 +595,7 @@ static void po_scene(void)
     tcat(s, " / PAR ");                  /* (no points: shots against par, as golf) */
     itos(PO_PAR, n);
     tcat(s, n);
-    header("POOL", C_CYAN, "", C_PINK, s);
+    header("POOL", C_PINK, "", C_PINK, s);
     if (po.phase == 2) {                 /* the table cleared: its card */
         cv_rect(36, 92, 168, 80, C_BG);
         frame_rect(36, 92, 168, 80, C_YEL);

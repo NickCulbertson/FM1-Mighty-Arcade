@@ -215,7 +215,7 @@ static void sn_scene(void)
     uint32_t ms = plat_ms();
     itos(sn.len - 3, n);
     tcat(n, " EATEN");
-    header("WORM", C_YEL, "", C_PINK, n);
+    header("WORM", C_CYAN, "", C_PINK, n);
     {                                    /* the desert at dusk: sand, its ripples drifting in the wind, a few stones */
         int32_t y, x;
         cv_rect(0, SN_Y, SN_W * SN_C, SN_H * SN_C, RGB(92, 60, 42));

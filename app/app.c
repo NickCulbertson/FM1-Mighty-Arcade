@@ -647,6 +647,7 @@ static void arena_clear(void)
 }
 
 /* a game's header: its name in two colours, a word on the right; a message over it for a moment */
+/* the games' titles: cyan and pink in turn across each menu page, a checkerboard like the logo (Nick, 20 Nov 2026) */
 static void header(const char *a, uint16_t ca, const char *b, uint16_t cb, const char *right)
 {
     int32_t x;
@@ -1567,7 +1568,7 @@ static void chess_scene(void)
         x = cv_text(6, 4, &FONT_B, ui.msg[0], C_INK);
         cv_text(x + 8, 4, &FONT_B, ui.msg[1], C_YEL);
     } else {
-        cv_text(6, 4, &FONT_B, "CHESS", C_CYAN);
+        cv_text(6, 4, &FONT_B, "CHESS", C_PINK);
         if (st.vs)
             tcpy(t, st.vs == 2 ? (pos.side > 0 ? "P1 (CYAN)" : "P2 (PINK)") : DIFF_NAME[st.depth]);
         else

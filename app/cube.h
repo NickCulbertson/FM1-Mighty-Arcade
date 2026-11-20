@@ -601,7 +601,7 @@ static void cu_scene(void)
     int y, x, i;
     char n[12];
     uint32_t ms = plat_ms();
-    header("CUBES", C_CYAN, "", C_PINK, cu.over ? "THE END" : "");
+    header("CUBES", C_PINK, "", C_PINK, cu.over ? "THE END" : "");
     cv_rect(WX - 1, WY - 1, WW * CELL + 2, WH * CELL + 2, RGB(18, 13, 32));
     {                                    /* the frame breathes with the beat */
         uint32_t beat = (ms * cu_bpm() / 60000u), ph = (ms * cu_bpm() / 600u) % 100u;

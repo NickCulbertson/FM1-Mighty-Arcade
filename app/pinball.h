@@ -1461,7 +1461,7 @@ static void pb_scene(void)
         text_c(120, 24, &FONT_XS, g, gc);
     }
     itos((int32_t)pb.score, s);
-    header("PINBALL", C_CYAN, "", C_PINK, s);
+    header("PINBALL", C_PINK, "", C_PINK, s);
     for (i = 0; i < pb.balls && i < 5; i++)   /* the balls left, and the multiplier */
         pb_steel_ball(112 + i * 13, 11, 40);
     if (pb.mult > 1) {
