@@ -86,8 +86,8 @@ h1 { font: 700 2.4rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-s
 h1 a { text-decoration: none; }
 h1 .m { color: #6ee1ff; }
 h1 .a { color: #ff2e97; }
-header p.qg-hint { color: #6ee1ff; text-transform: uppercase; letter-spacing: .08em; font-size: .9rem; margin-left: auto; }
-header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; border-color: var(--rule); background: var(--card); }
+p.qg-hint { margin: .9rem 0 0; color: var(--ink); }
+p.qg-hint kbd { color: #ffe200; border-color: var(--rule); background: var(--card); }
 .start button { background: #ff2e97; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
                 text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
 .start button:hover, .start button:focus-visible { background: #ffe200; }
@@ -101,7 +101,6 @@ header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; 
 <body>
 <header>
   <h1><a href="../"><span class="m">Mighty</span> <span class="a">Arcade</span></a></h1>
-  <p class="qg-hint">Use the <kbd>arrows</kbd> and <kbd>Space</kbd> to navigate</p>
 </header>
 <main>
 <h2 class="sr">The FM-1</h2>
@@ -118,6 +117,7 @@ header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; 
   Page Up and Page Down faster. Space or Enter holds a button or key down while you hold it; Shift and Enter keeps it down
   until you press it again (with a mouse: Shift-click or right-click).</p>
 
+<p class="qg-hint">Use the <kbd>arrows</kbd> to move and <kbd>Space</kbd> to select. If the keys don't respond, click the page first.</p>
 <div class="bar">
   <span id="status" role="status">Off. Sound starts when you switch it on.</span>
   <span id="alert" role="alert"></span>
@@ -540,18 +540,6 @@ addEventListener("keyup", (e) => {
   e.stopImmediatePropagation();
   letGo("q" + e.code);
 }, true);
-// the keys only reach a focused page: say so when it is not, and a click anywhere takes them back
-const qgFocus = document.createElement("div");
-qgFocus.textContent = "Click here to play with the keyboard (arrows move, Space selects)";
-qgFocus.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99;padding:10px 18px;" +
-  "border-radius:10px;background:#ffe200;color:#000;font:600 15px system-ui,sans-serif;cursor:pointer;" +
-  "box-shadow:0 4px 16px rgba(0,0,0,.4);display:none";
-document.body.appendChild(qgFocus);
-const qgShow = () => { qgFocus.style.display = document.hasFocus() ? "none" : "block"; };
-addEventListener("blur", qgShow);
-addEventListener("focus", qgShow);
-qgFocus.addEventListener("pointerdown", () => { window.focus(); qgFocus.style.display = "none"; });
-setInterval(qgShow, 500);
 const shortcuts = $("shortcuts");
 if (prefs.shortcuts === false) shortcuts.checked = false;
 shortcuts.addEventListener("change", () => { prefs.shortcuts = shortcuts.checked; savePrefs(); });
