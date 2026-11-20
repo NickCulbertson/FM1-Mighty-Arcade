@@ -597,7 +597,7 @@ static void select_here(void)
  * in the middle with CHESS and SOLITAIRE, WORM, CUBES and DEFUSE below. Page 2, the rest, DROP in its middle and POOL
  * beside it (Nick, 17 Nov 2026) */
 enum { M_MENU,
-       M_DRIFT, M_SWARM, M_BRICK,        /* page 1 (DRIFT first, BOUNCE third: Nick, 19 Nov 2026) */
+       M_DRIFT, M_BRICK, M_SWARM,        /* page 1 (DRIFT, BOUNCE, SWARM: the two space games apart, Nick 19 Nov 2026) */
        M_CHESS, M_DICE, M_SOLI,
        M_SNAKE, M_CUBE, M_MINES,
        M_GOLF, M_PINBALL, M_BOUNCE,      /* page 2 */
@@ -606,7 +606,7 @@ enum { M_MENU,
        NMODE };
 static uint8_t help_on;                  /* EDIT's controls overlay is up (help_scene) */
 static const char *const MODE_NAME[NMODE] = {"MENU",
-                                             "DRIFT", "SWARM", "BOUNCE",
+                                             "DRIFT", "BOUNCE", "SWARM",
                                              "CHESS", "DICE SYNTH", "SOLITAIRE",
                                              "WORM", "CUBES", "DEFUSE",
                                              "GOLF", "PINBALL", "DODGE",
