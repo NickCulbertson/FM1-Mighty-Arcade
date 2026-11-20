@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Mighty Arcade's browser page, in its front page's look (QG_STYLE: black, cyan and pink, the hint to use the arrows
-and Space). The arrow keys move the cursor (they press the pad at the keyboard's bottom end: F3 left, A3 right,
+and Space, under the panel). The arrow keys move the cursor (they press the pad at the keyboard's bottom end: F3 left, A3 right,
 F#3 up, G3 down) and Enter or Space selects (F5, at its top end), ahead of the page's own use of them. Run after ./build.sh --web (build.sh does)."""
 import sys
 p = sys.argv[1]
@@ -25,18 +25,6 @@ addEventListener("keyup", (e) => {
   e.stopImmediatePropagation();
   letGo("q" + e.code);
 }, true);
-// the keys only reach a focused page: say so when it is not, and a click anywhere takes them back
-const qgFocus = document.createElement("div");
-qgFocus.textContent = "Click here to play with the keyboard (arrows move, Space selects)";
-qgFocus.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99;padding:10px 18px;" +
-  "border-radius:10px;background:#ffe200;color:#000;font:600 15px system-ui,sans-serif;cursor:pointer;" +
-  "box-shadow:0 4px 16px rgba(0,0,0,.4);display:none";
-document.body.appendChild(qgFocus);
-const qgShow = () => { qgFocus.style.display = document.hasFocus() ? "none" : "block"; };
-addEventListener("blur", qgShow);
-addEventListener("focus", qgShow);
-qgFocus.addEventListener("pointerdown", () => { window.focus(); qgFocus.style.display = "none"; });
-setInterval(qgShow, 500);
 """
 s = s[:j] + add + s[j:]
 
@@ -50,8 +38,8 @@ h1 { font: 700 2.4rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-s
 h1 a { text-decoration: none; }
 h1 .m { color: #6ee1ff; }
 h1 .a { color: #ff2e97; }
-header p.qg-hint { color: #6ee1ff; text-transform: uppercase; letter-spacing: .08em; font-size: .9rem; margin-left: auto; }
-header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; border-color: var(--rule); background: var(--card); }
+p.qg-hint { margin: .9rem 0 0; color: var(--ink); }
+p.qg-hint kbd { color: #ffe200; border-color: var(--rule); background: var(--card); }
 .start button { background: #ff2e97; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
                 text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
 .start button:hover, .start button:focus-visible { background: #ffe200; }
@@ -64,7 +52,8 @@ header p.qg-hint kbd { text-transform: none; letter-spacing: 0; color: #ffe200; 
 """
 s = s.replace("</head>", STYLE + "</head>", 1)
 s = s.replace("<h1>MightyArcade</h1>", "<h1>Mighty Arcade</h1>")   # (build.sh puts the space in after this)
-s = s.replace("<h1>Mighty Arcade</h1>", '<h1><a href="../"><span class="m">Mighty</span> <span class="a">Arcade</span></a></h1>\n'
-              '  <p class="qg-hint">Use the <kbd>arrows</kbd> and <kbd>Space</kbd> to navigate</p>', 1)
+s = s.replace("<h1>Mighty Arcade</h1>", '<h1><a href="../"><span class="m">Mighty</span> <span class="a">Arcade</span></a></h1>', 1)
+s = s.replace('<div class="bar">', '<p class="qg-hint">Use the <kbd>arrows</kbd> to move and <kbd>Space</kbd> to select. '
+              "If the keys don't respond, click the page first.</p>\n" + '<div class="bar">', 1)
 open(p, "w").write(s)
 print("arrows added")
