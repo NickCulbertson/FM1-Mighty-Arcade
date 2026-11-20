@@ -8,7 +8,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Install · MightyArcade</title>
+<title>Install · Mighty Arcade</title>
 <style>
   /* light: the coral and the dim brown darkened just enough for 4.5:1 on the cream (and white on the coral) */
   :root { --bg: #faf4e8; --fg: #48392f; --dim: #6e5c4b; --accent: #b84a1e; --on-accent: #fff; --bad: #a3271b; --focus: #1f6fd1; }
@@ -61,7 +61,7 @@
 <body>
 <main>
   <button type="button" class="lang" id="lang" lang="ja">日本語</button>
-  <h1>Install MightyArcade</h1>
+  <h1>Install Mighty Arcade</h1>
   <p data-t="intro">Connect the FM-1 by USB, then press Install. It works in Chrome or Edge; the browser asks once to allow MIDI: allow it.</p>
   <p data-t="warn">Do not unplug the USB cable while writing.</p>
   <p class="small" data-t="direct"></p>
@@ -103,7 +103,7 @@
   <p id="reportstatus" role="status"></p>
   <label class="sr" for="report" data-t="reportlabel">Crash report</label>
   <textarea id="report" readonly hidden rows="14"></textarea>
-  <p><a href="../" data-t="manual">Back to MightyArcade</a></p>
+  <p><a href="../" data-t="manual">Back to Mighty Arcade</a></p>
 </main>
 <dialog id="appask" aria-labelledby="appaskh">
   <form method="dialog">
@@ -125,7 +125,7 @@
   </form>
 </dialog>
 <footer>
-  <p class="small">MightyArcade is built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments<span class="sr" data-t="newtab"> (opens in a new tab)</span></a>. Built on fm1-base by Charles Vestal and felucca-bsp; the sound engine is Mighty Arp's<br>
+  <p class="small">Mighty Arcade is built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments<span class="sr" data-t="newtab"> (opens in a new tab)</span></a>. Built on fm1-base by Charles Vestal and felucca-bsp; the sound engine is Mighty Arp's<br>
     Fonts: Barlow Semi Condensed (SIL OFL 1.1). M-VAVE and FM-1 are trademarks of their respective owners.<br>
     <span data-t="license"></span> <a href="https://github.com/NickCulbertson/FM1-Mighty-Arcade" target="_blank" rel="noopener">github.com/NickCulbertson/FM1-Mighty-Arcade<span class="sr" data-t="newtab"> (opens in a new tab)</span></a></p>
 </footer>
@@ -924,13 +924,13 @@ const TEXT = {
     newtab: "（新しいタブで開きます）", progress: "進行状況", pct: " {n}%",
     warn: "書き込み中は USB を抜かないでください。",
     install: "インストール", other: "English",
-    manual: "MightyArcade のページへ",
+    manual: "Mighty Arcade のページへ",
     direct: "USB ケーブルはパソコンに直接つないでください。Probe や Transporter などの機材は不要です。",
     brick: "万一 FM-1 が起動しなくなった場合は、Mac から標準ファームウェアに戻せます:",
     bricklink: "起動しない FM-1 の復旧（英語）",
     back: "公式ファームウェアに戻すには、このページ下の「純正ファームウェアに戻す」か、M-VAVE 公式のアップデーター M-UPGRADE（Downloads → PC Software → M-UPGRADE）を使います。M-UPGRADE 3.11 はこのページのバージョンを見つけますが、それより古いバージョンは見つけられません（「A USB MIDI device is present but did not answer」と表示されます）。その場合はこのページ下のボタンを使ってください。",
     stockh: "純正ファームウェアに戻す",
-    stockwhy: "M-VAVE の FM-1 ファームウェアを、MightyArcade（またはそのセーフモード）から同じ USB ケーブルで書き込みます。MightyArcade で保存したものは消えることがあります。",
+    stockwhy: "M-VAVE の FM-1 ファームウェアを、Mighty Arcade（またはそのセーフモード）から同じ USB ケーブルで書き込みます。Mighty Arcade で保存したものは消えることがあります。",
     stock1: "M-VAVE の FM-1 ファームウェアをダウンロード:",
     stock2: "ダウンロードしたファイルを選ぶ:",
     stock3: "FM-1 を USB で接続し、下のボタンを押す。",
@@ -956,19 +956,19 @@ const TEXT = {
     reporth: "不具合を報告する",
     reportwhy: "FM-1 がクラッシュしたら、電源を切らずに USB で接続し、下のボタンを押してください。クラッシュの記録は再起動では残りますが、電源を切ると消えます。表示された内容をコピーして、何をしていたかと一緒に送ってください。",
     reportread: "クラッシュの記録を読む", reportcopy: "コピー", reportlabel: "クラッシュの記録",
-    reportwait: "読み込み中…", reportnone: "応答がありません。FM-1 が MightyArcade を実行しているか確かめてください。",
+    reportwait: "読み込み中…", reportnone: "応答がありません。FM-1 が Mighty Arcade を実行しているか確かめてください。",
     reportok: "読み込みました。コピーして送ってください。", reportcopied: "コピーしました。",
     mboot: "m-bootloader も書き込む: 電源を入れるときに PLAY を押したままでリカバリーメニュー、REC でアップデートモード。ファームウェアが起動しないときにも使えます。",
     mbootwhy: "Julius Vitkauskas によるオープンなブートローダー（MIT）。M-VAVE のブートローダーと置き換わり、ファームウェアを更新しても残ります。「純正ファームウェアに戻す」で M-VAVE のものに戻ります。メニューの WIPE USER DATA は、ファームウェアが保存したものをすべて消去します。",
     confirmh: "インストールの前に",
     confirm1: "書き込み中、FM-1 の画面には UPDATING と進み具合が出るか、暗いままになります。このページに「完了しました」と出るまで、USB ケーブルを抜いたり電源を切ったりしないでください。数分かかることがあります。",
     confirmboot: "ファームウェアの後に m-bootloader を書き込みます。FM-1 はその間にもう一度再起動します。",
-    bakh: "先にバックアップを。", confirmbak: "書き込みで MightyArcade に保存したものが消えることがあります。",
+    bakh: "先にバックアップを。", confirmbak: "書き込みで Mighty Arcade に保存したものが消えることがあります。",
     bakok: "バックアップを取った（または残したいものはない）",
-    backuplink: "MightyArcade をバックアップする", confirmgo: "書き込む", confirmcancel: "キャンセル",
+    backuplink: "Mighty Arcade をバックアップする", confirmgo: "書き込む", confirmcancel: "キャンセル",
     bootstart: "m-bootloader を書き込み中", bootwrite: "m-bootloader を書き込み中。FM-1 は自動で再起動します",
     bootdone: "完了しました（m-bootloader 付き）",
-    bootrefused: "MightyArcade はインストールされましたが、m-bootloader は書き込めませんでした。ほかは何も変わっていません。",
+    bootrefused: "Mighty Arcade はインストールされましたが、m-bootloader は書き込めませんでした。ほかは何も変わっていません。",
     stockdamaged: "このファイルは壊れています。もう一度ダウンロードしてください。",
     stockunknown: "M-VAVE の FM-1 ファームウェアです（このページにチェックサムのないバージョン）。書き込む前に FM-1 がもう一度確認します。ボタンを押してください。",
     stockmodified: "このファイルは M-VAVE のものではありません。チェックサムを知っているバージョンだと名乗っていますが、チェックサムが一致しません。上のリンクからもう一度ダウンロードしてください。",
@@ -977,12 +977,12 @@ const TEXT = {
     tryport: "試す", pickwait: "問い合わせ中…", pickempty: "ほかの MIDI ポートはありません。",
     picknone: "{port} からは FM-1 の応答がありません。",
     pickok: "{port} で {id} が見つかりました。このブラウザが覚えておきます。もう一度押してください。",
-    res: "MightyArcade のデータを書き込み中", resdone: "完了しました（MightyArcade のデータも書き込みました）",
-    resfail: "MightyArcade はインストールされ、動きます。ただしMightyArcade のデータは、もう一度インストールするまでありません。書き込めなかった理由: ",
+    res: "Mighty Arcade のデータを書き込み中", resdone: "完了しました（Mighty Arcade のデータも書き込みました）",
+    resfail: "Mighty Arcade はインストールされ、動きます。ただしMighty Arcade のデータは、もう一度インストールするまでありません。書き込めなかった理由: ",
     res2: "転送が途中で止まりました。", res7: "FM-1 がメモリを消去できませんでした。", res8: "FM-1 がメモリに書き込めませんでした。",
-    res10: "FM-1 が再生中です。止めてから、もう一度インストールしてください。", res20: "このMightyArcade のデータは MightyArcade の別のビルドのものです。",
+    res10: "FM-1 が再生中です。止めてから、もう一度インストールしてください。", res20: "このMighty Arcade のデータは Mighty Arcade の別のビルドのものです。",
     res21: "FM-1 が保存したものを移動中です。電源を入れ直してから、もう一度インストールしてください。",
-    res22: "書き込んだ内容の確認に失敗しました。", resload: "MightyArcade のデータのファイルを読み込めませんでした。ページを再読み込みしてください。",
+    res22: "書き込んだ内容の確認に失敗しました。", resload: "Mighty Arcade のデータのファイルを読み込めませんでした。ページを再読み込みしてください。",
     resnoreturn: "インストール後、FM-1 が応答しませんでした。", reslost: "USB の接続が切れました。",
     resother: "エラーコード ",
   },
@@ -991,13 +991,13 @@ const TEXT = {
     newtab: " (opens in a new tab)", progress: "Progress", pct: ", {n} percent",
     warn: "Do not unplug the USB cable while writing.",
     install: "Install", other: "日本語",
-    manual: "Back to MightyArcade",
+    manual: "Back to Mighty Arcade",
     direct: "Connect the USB cable directly to the computer. No probe or Transporter is needed.",
     brick: "If the FM-1 no longer starts, a Mac can put the stock firmware back:",
     bricklink: "recovering an FM-1 that won't start",
     back: "To go back to the official firmware, use \"Back to the stock firmware\" below, or M-VAVE's own updater, M-UPGRADE (Downloads → PC Software → M-UPGRADE). M-UPGRADE 3.11 finds the version on this page, not older ones (it says \"A USB MIDI device is present but did not answer\"): use the button below for those.",
     stockh: "Back to the stock firmware",
-    stockwhy: "This writes M-VAVE's own FM-1 firmware back, from MightyArcade (or its safe mode, or another firmware with the same update entry) over the same USB cable. What MightyArcade saved may be lost.",
+    stockwhy: "This writes M-VAVE's own FM-1 firmware back, from Mighty Arcade (or its safe mode, or another firmware with the same update entry) over the same USB cable. What Mighty Arcade saved may be lost.",
     stock1: "Download M-VAVE's FM-1 firmware:",
     stock2: "Choose the file you downloaded:",
     stock3: "Connect the FM-1 by USB and press the button below.",
@@ -1023,19 +1023,19 @@ const TEXT = {
     reporth: "Report a problem",
     reportwhy: "If the FM-1 crashed, don't switch it off: connect it by USB and press the button below. The crash record survives a restart, but not switching off. Copy what appears and send it, with what you were doing at the time.",
     reportread: "Read the crash report", reportcopy: "Copy", reportlabel: "Crash report",
-    reportwait: "Reading…", reportnone: "No answer. Check that the FM-1 is running MightyArcade.",
+    reportwait: "Reading…", reportnone: "No answer. Check that the FM-1 is running Mighty Arcade.",
     reportok: "Read. Copy it and send it.", reportcopied: "Copied.",
     mboot: "Also install m-bootloader: hold PLAY while switching on for a recovery menu, or REC for update mode, even when a firmware won't start.",
     mbootwhy: "An open bootloader by Julius Vitkauskas (MIT). It replaces M-VAVE's bootloader and stays through firmware updates; \"Back to the stock firmware\" puts M-VAVE's back. Its menu's WIPE USER DATA erases everything firmwares have saved.",
     confirmh: "Before you install",
     confirm1: "While it is written, the FM-1's screen shows UPDATING and a bar, or stays dark. Don't unplug the USB cable or switch the FM-1 off until this page says Done. It can take several minutes.",
     confirmboot: "m-bootloader is written after the firmware: the FM-1 restarts once more for it.",
-    bakh: "Back up first.", confirmbak: "Installing can lose what MightyArcade has saved.",
+    bakh: "Back up first.", confirmbak: "Installing can lose what Mighty Arcade has saved.",
     bakok: "I've backed up, or have nothing to keep.",
-    backuplink: "Back up MightyArcade", confirmgo: "Install", confirmcancel: "Cancel",
+    backuplink: "Back up Mighty Arcade", confirmgo: "Install", confirmcancel: "Cancel",
     bootstart: "Installing m-bootloader", bootwrite: "Installing m-bootloader: the FM-1 restarts by itself",
     bootdone: "Done, with m-bootloader",
-    bootrefused: "MightyArcade is installed, but m-bootloader could not be: nothing else was changed.",
+    bootrefused: "Mighty Arcade is installed, but m-bootloader could not be: nothing else was changed.",
     stockdamaged: "That file is damaged. Download it again.",
     stockunknown: "That is M-VAVE's FM-1 firmware, a version this page has no checksum for. The FM-1 checks it again before writing. Press the button to install it.",
     stockmodified: "That file is not M-VAVE's: it says it is a version whose checksum this page knows, and its checksum differs. Download it again from the link above.",
@@ -1044,12 +1044,12 @@ const TEXT = {
     tryport: "Try", pickwait: "Asking…", pickempty: "No other MIDI ports.",
     picknone: "No FM-1 answered on {port}.",
     pickok: "Found {id} on {port}. This browser remembers it. Press the button again.",
-    res: "Writing MightyArcade's data", resdone: "Done, with MightyArcade's data written too.",
-    resfail: "MightyArcade is installed and works, but without MightyArcade's data until you install it again. Not written: ",
+    res: "Writing Mighty Arcade's data", resdone: "Done, with Mighty Arcade's data written too.",
+    resfail: "Mighty Arcade is installed and works, but without Mighty Arcade's data until you install it again. Not written: ",
     res2: "the transfer stopped.", res7: "the FM-1 could not erase its memory.", res8: "the FM-1 could not write its memory.",
-    res10: "the FM-1 is playing. Stop it, then install again.", res20: "the file of MightyArcade's data is for another build of MightyArcade.",
+    res10: "the FM-1 is playing. Stop it, then install again.", res20: "the file of Mighty Arcade's data is for another build of Mighty Arcade.",
     res21: "the FM-1 is still moving what it has saved. Switch it off and on, then install again.",
-    res22: "what was written did not check.", resload: "the file of MightyArcade's data did not load. Reload the page.",
+    res22: "what was written did not check.", resload: "the file of Mighty Arcade's data did not load. Reload the page.",
     resnoreturn: "the FM-1 did not answer after the update.", reslost: "the USB connection was lost.",
     resother: "error code ",
   },
@@ -1136,7 +1136,7 @@ window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault
     if (productOf(pkg) !== meta.product) { sayK("badpkg"); return; }
     image = logicalImage(pkg);
     try { checkUfw(image); } catch (_) { image = null; sayK("badpkg"); return; }
-    say(`MightyArcade ${meta.version}`);
+    say(`Mighty Arcade ${meta.version}`);
     $("go").disabled = false;
   } catch (e) { sayK("loadfail", e.message); }
   /* m-bootloader: offered only when its package is here and is the one the site was made with */
