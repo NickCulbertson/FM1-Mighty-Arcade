@@ -15,10 +15,11 @@
  * (DOT MUNCHER was cut, 16 Nov 2026: a maze of dots with chasers is Pac-Man's design, cf. Atari v. Philips 1982) */
 
 /* held like a game controller (Nick, 18 Nov 2026): the pad under the left hand at the keyboard's bottom end, F3 left,
- * F#3 up, G3 down, A3 right; the select key under the right hand at its top end, F5 (one key, Nick said: F,
+ * F#3 (or G#3) up, G3 down, A3 right; the select key under the right hand at its top end, F5 (one key, Nick said: F,
  * as the pad's left) */
 #define PAD_L 0u
 #define PAD_U 1u
+#define PAD_U2 3u                        /* G#3: up too, the easier reach (Nick, 21 Nov 2026) */
 #define PAD_D 2u
 #define PAD_R 4u
 #define PAD_S0 24u                       /* F5 */

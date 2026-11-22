@@ -711,7 +711,7 @@ static int game_over_now(void)
 #define PK_B (1u << 5)                   /* G5: the second button (CUBES' drop) */
 static uint32_t pk_keys(uint32_t w)      /* those parts as keys */
 {
-    return (w & PK_C ? 1u << PAD_L : 0u) | (w & PK_U ? 1u << PAD_U : 0u) | (w & PK_D ? 1u << PAD_D : 0u) |
+    return (w & PK_C ? 1u << PAD_L : 0u) | (w & PK_U ? 1u << PAD_U | 1u << PAD_U2 : 0u) | (w & PK_D ? 1u << PAD_D : 0u) |
            (w & PK_E ? 1u << PAD_R : 0u) | (w & PK_A ? PAD_SEL_KEYS : 0u) |
            (w & PK_B ? 1u << PAD_S1 : 0u);
 }
@@ -1183,6 +1183,9 @@ static void input(void)
     int32_t e;
     touch_poll();
     keys = touch_keys();
+    if ((keys >> PAD_U2 & 1u) && mode != M_DICE && mode != M_DROP && (mode != M_CHESS || st.vs))
+        keys |= 1u << PAD_U;             /* G#3: up as well as F#3, the easier reach (Nick, 21 Nov 2026); not where
+                                          * every key plays (DICE SYNTH, NOTE DROP, CPU VS CPU's play-along) */
     for (k = 0; k < NKEYS; k++) {
         uint32_t bit = 1u << k;
         if ((keys & bit) && !(ui.keys & bit)) {

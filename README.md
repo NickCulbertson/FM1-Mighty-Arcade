@@ -25,7 +25,7 @@ Mighty Arcade, from the creator of Mighty Arp, is custom firmware for the M-VAVE
 
 ## Quick start
 
-- **Play:** the lowest keys are the pad (**F3** left, **F#3** up, **G3** down, **A3** right); **F5** selects.
+- **Play:** the lowest keys are the pad (**F3** left, **F#3** or **G#3** up, **G3** down, **A3** right); **F5** selects.
   **EDIT** shows every control for the game on screen.
 - **Menu:** two pages of nine. **HOME** comes back from any game; up from the top row picks 1 or 2 players.
 - **Music:** **PRESET** sets the scale and **ALGORITHM** the key, for every game. In the sequencer games the knobs

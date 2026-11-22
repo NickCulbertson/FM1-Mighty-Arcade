@@ -1,0 +1,26 @@
+# G#3 is up too, as well as F#3: the easier reach (Nick, 21 Nov 2026). In the menu and SOLITAIRE; not in DICE SYNTH,
+# where every key plays
+wait 600
+expect menu_to_WORM 1
+tapkey 1
+expect menu_at 4
+expect menu_to_WORM 1
+tapkey 3
+expect menu_at 4
+expect menu_to_SOLITAIRE 1
+tapkey 24
+expect mode_is_SOLITAIRE 1
+wait 300
+# G# up to the top row: the stock; draw three
+tapkey 3
+tapkey 24
+tapkey 24
+tapkey 24
+expect so_moves 3
+tap HOME
+wait 300
+expect menu_to_DICE_SYNTH 1
+tapkey 24
+expect mode_is_DICE_SYNTH 1
+tapkey 3
+expect mode_is_DICE_SYNTH 1
