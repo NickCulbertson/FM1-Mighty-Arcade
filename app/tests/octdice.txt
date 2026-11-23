@@ -1,0 +1,18 @@
+# GPT's review (23 Nov 2026): OCT- in the menu, then into DICE SYNTH: its own octave from the moment it's entered
+# (the host can't press two keys in one frame, so this checks the octave enter() leaves, not the stuck note itself)
+wait 300
+tap OCT-
+wait 50
+expect pitch50 38
+expect menu_to_DICE_SYNTH 1
+tapkey 24
+expect mode_is_DICE_SYNTH 1
+expect pitch50 50
+key 26 down
+wait 100
+key 26 up
+wait 1500
+expect eng_held 0
+tap HOME
+wait 50
+expect pitch50 38

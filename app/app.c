@@ -999,6 +999,9 @@ static void enter(uint32_t m)            /* into a game (or the menu): its sound
     if (m == M_MENU && mode != M_MENU)   /* back from a game: the menu's music rolled afresh */
         menu_roll();
     mode = (uint8_t)m;
+    k_oct = mode == M_DICE ? 0 : oct_shift;   /* at once: a key later in the same input() (F5 and G5 together into
+                                          * DICE SYNTH) is let go at this octave, so it must start at it too (GPT's
+                                          * review, 23 Nov 2026: else it stuck) */
     fx_apply();
     juice_reset();
     if (m != M_MENU)
@@ -1250,6 +1253,7 @@ static void input(void)
                 ui.held[k] = -1;
             }
         oct_shift = (int8_t)o;
+        k_oct = (int8_t)o;               /* (at once, as enter() does) */
         app_say("OCTAVE", o > 0 ? "+1" : o < 0 ? "-1" : "0");
     }
     if (pressed >> B_HOME & 1u && mode != M_MENU) {   /* HOME: the menu, from any game */
