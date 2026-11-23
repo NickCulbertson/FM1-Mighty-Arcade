@@ -409,6 +409,8 @@ static void so_sounds(void)
     k_slot_set(SS_WIN, &KSND[S_TUBE]);
     k_slot_set(SS_BASS, &KSND[S_TINES]);
     k_slot_rel(SS_PAD, 1.6f);
+    k_slot_gain(SS_PAD, 0.7f);           /* the pad ~3 dB down: in the big room it filled the FM-1's speaker and buried
+                                          * the cards' notes. Good on headphones, so only a little (Nick, 23 Nov 2026) */
     k_slot_rel(SS_HOME, 0.8f);
     k_slot_rel(SS_WIN, 1.5f);
     k_slot_rel(SS_BASS, 0.8f);

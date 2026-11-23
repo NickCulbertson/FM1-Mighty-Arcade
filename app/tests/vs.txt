@@ -44,9 +44,13 @@ wait 1200
 expect ply 3
 wait 3400
 expect ply 4
-# the cursor is on the knight that just moved: A picks it, OCT- lets it go
+# the cursor is on the knight that just moved: A picks it, A again lets it go. (OCT- is the octave now, in chess too:
+# Nick, 22 Nov 2026; it leaves the piece picked)
 tapkey 24
 expect from 37
 tap OCT-
+expect from 37
+expect pitch50 38
+tapkey 24
 expect from -1
 shot vs3.png

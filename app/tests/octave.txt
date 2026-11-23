@@ -1,0 +1,40 @@
+# the key: D3 by default (Nick, 22 Nov 2026); OCT- OCT+ move every note but the drums an octave, -1 .. +1, in
+# every game but DICE SYNTH (its own octave), never past C2 .. C6: a note it would take past them stays put
+wait 600
+expect key_root 52
+expect bass 40
+expect pitch50 50
+tap OCT+
+expect pitch50 62
+expect pitch38 50
+expect pitch80 80
+tap OCT+
+expect pitch50 62
+tap OCT-
+tap OCT-
+expect pitch50 38
+expect pitch38 38
+expect pitch47 47
+expect pitch48 36
+expect pitch90 78
+tap OCT-
+expect pitch50 38
+tap OCT+
+expect pitch50 50
+expect menu_to_SOLITAIRE 1
+tapkey 24
+expect mode_is_SOLITAIRE 1
+tap OCT+
+wait 50
+expect pitch50 62
+tap HOME
+wait 300
+expect pitch50 62
+expect menu_to_DICE_SYNTH 1
+tapkey 24
+expect mode_is_DICE_SYNTH 1
+wait 50
+expect pitch50 50
+tap OCT-
+wait 50
+expect pitch50 50

@@ -88,8 +88,13 @@ static struct {
 static int your_turn(void) { return st.vs && !st.over && (st.vs == 2 || pos.side > 0) && !pending_ok && !apply_t; }
 static uint32_t over_t;                  /* when the next game starts */
 
-/* the key: G, moved by ALGORITHM (every game's), kept within G#2 .. G3 */
-static int8_t key_shift;
+/* the key: E (E3), moved by ALGORITHM (every game's), kept within G#2 .. G3. E, not G, by default: G3 didn't sound
+ * good on the FM-1's own speaker; D did but with less life, and E was the middle (Nick, 22-23 Nov 2026, in
+ * SOLITAIRE). SCALES stay on G; this moves them */
+static int8_t key_shift = 9;
+/* and the octave: OCT- / OCT+ in every game but DICE SYNTH (its own), -1 .. +1, every note but the drums, but never
+ * past C2 .. C6 (kit.h's k_pitch). Back to 0 when it's switched on, like the key (Nick, 22 Nov 2026) */
+static int8_t oct_shift;
 static int key_root(void)
 {
     int r = SCALES[st.scale].root + key_shift;
@@ -1181,6 +1186,7 @@ static void input(void)
 {
     uint32_t keys, btn = plat_buttons(), k, pressed;
     int32_t e;
+    k_oct = mode == M_DICE ? 0 : oct_shift;   /* (DICE SYNTH: its own octave) */
     touch_poll();
     keys = touch_keys();
     if ((keys >> PAD_U2 & 1u) && mode != M_DICE && mode != M_DROP && (mode != M_CHESS || st.vs))
@@ -1236,6 +1242,16 @@ static void input(void)
         help_on ^= 1u;
         pressed &= ~(1u << B_EDIT | 1u << B_GLO);
     }
+    if (mode != M_DICE && (pressed & (1u << B_OCTDN | 1u << B_OCTUP))) {   /* OCT- OCT+: the octave, every game's */
+        int o = clamp(oct_shift + (int)(pressed >> B_OCTUP & 1u) - (int)(pressed >> B_OCTDN & 1u), -1, 1);
+        for (k = 0; k < NKEYS; k++)      /* the keys' notes held now: let go in the octave they started in */
+            if (ui.held[k] >= 0) {
+                k_off(0, ui.held[k]);
+                ui.held[k] = -1;
+            }
+        oct_shift = (int8_t)o;
+        app_say("OCTAVE", o > 0 ? "+1" : o < 0 ? "-1" : "0");
+    }
     if (pressed >> B_HOME & 1u && mode != M_MENU) {   /* HOME: the menu, from any game */
         enter(M_MENU);
         app_say("MENU", "");
@@ -1268,8 +1284,6 @@ static void input(void)
         if (st.vs)
             tcpy(comment, "The lowest keys are the pad: F left, F sharp up, G down, A right. The top keys select.");
     }
-    if (pressed >> B_OCTDN & 1u && st.vs && you.from >= 0)   /* let the piece go */
-        you.from = -1;
     if (mode != M_CHESS) {               /* the knobs are the chess music's (SELECT: the difficulty, here too;
                                           * K4: EFFECTS, in every game) */
         uint32_t i;
@@ -1318,7 +1332,7 @@ static void input(void)
                 if (g == SQ_CUBE)        /* CUBE DROP: its levels set the tempo */
                     app_say("TEMPO", "BY THE LEVEL");
                 else {
-                    sq_cfg[g].bpm = (uint8_t)clamp((int32_t)sq_cfg[g].bpm + e, 40, 180);
+                    sq_cfg[g].bpm = (uint8_t)clamp((int32_t)sq_cfg[g].bpm + e, 20, 180);   /* (down to 20: Nick, 23 Nov 2026) */
                     if (g == SQ_SOLI)
                         so_room();
                     if (g == SQ_BRICK)   /* (its echo follows the tempo) */
@@ -1419,10 +1433,10 @@ static void input(void)
                                           * half lit otherwise, so it stands out from the unused ones */
         if (mode != M_CHESS)
             plat_leds((mode == M_DICE ? dc_lit() | btn : (mode != M_MENU ? 1u << B_HOME : 0u) | (mode == M_SOLI || mode == M_CUBE ? 1u << B_PLAY : 0u) |
-                      btn) | (help_on ? hb : 0u), lit | keys | (mode == M_PINBALL ? 1u << PB_AUTO_KEY : 0u));
+                      1u << B_OCTDN | 1u << B_OCTUP | btn) | (help_on ? hb : 0u), lit | keys | (mode == M_PINBALL ? 1u << PB_AUTO_KEY : 0u));
         else
         plat_leds((st.paused ? 0u : 1u << B_PLAY) | 1u << B_HOME | (st.vs ? 1u << B_SEL : 0u) |
-                  (st.vs && you.from >= 0 ? 1u << B_OCTDN : 0u) | btn | (help_on ? hb : 0u), lit | keys);
+                  1u << B_OCTDN | 1u << B_OCTUP | btn | (help_on ? hb : 0u), lit | keys);
         if (!help_on)
             plat_lights_mid(hb, 0);
     }
@@ -1951,10 +1965,11 @@ typedef struct {
     const char *k, *v;
 } help_t;
 #define H_SEQ {"K1", "TEMPO"}, {"K2", "CHANCE (NOTES THAT PLAY)"}, {"K3", "SOUND"}, {"K4", "EFFECTS VOLUME"}, \
-              {"PRESET", "SCALE"}, {"ALGO", "KEY"}
-#define H_FX {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}
+              {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {"OCT- OCT+", "OCTAVE"}
+#define H_FX {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {"OCT- OCT+", "OCTAVE"}
 static const help_t HELP_MENU[] = {{"PAD", "MOVE"}, {"F5", "OPEN THE GAME"}, {"UP (TOP ROW)", "1 OR 2 PLAYERS"},
                                    {"PRESET", "SCALE, FOR EVERY GAME"}, {"ALGO", "KEY, FOR EVERY GAME"},
+                                   {"OCT- OCT+", "OCTAVE, FOR EVERY GAME"},
                                    {"HOME", "BACK HERE FROM A GAME"}, {0, 0}};
 static const help_t HELP_BRICK[] = {{"LEFT RIGHT", "MOVE THE PADDLE"}, {"F5", "LAUNCH THE BALL"}, H_SEQ, {0, 0}};
 static const help_t HELP_SWARM[] = {{"PAD", "MOVE THE ROCKET"}, {"F5", "FIRE (HOLD: ON THE BEAT)"},
@@ -1962,9 +1977,9 @@ static const help_t HELP_SWARM[] = {{"PAD", "MOVE THE ROCKET"}, {"F5", "FIRE (HO
 static const help_t HELP_DRIFT[] = {{"LEFT RIGHT", "TURN"}, {"UP", "THRUST"}, {"F5", "FIRE (HOLD: ON THE BEAT)"}, H_SEQ,
                                     {0, 0}};
 static const help_t HELP_CHESS[] = {{"PAD", "MOVE THE CURSOR"}, {"F5", "PICK A PIECE, THEN ITS SQUARE"},
-                                    {"OCT-", "PUT THE PIECE BACK"}, {"SEL", "YOU VS CPU / CPU VS CPU"},
+                                    {"SEL", "YOU VS CPU / CPU VS CPU"},
                                     {"PLAY", "PAUSE"}, {"K1", "TEMPO"}, {"K2", "CHANCE (NOTES THAT PLAY)"}, {"K3", "MOVE EVERY 1/2/4 BARS"},
-                                    {"PRESET", "SCALE"}, {"ALGO", "KEY"},
+                                    {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {"OCT- OCT+", "OCTAVE"},
                                     {"SELECT", "DIFFICULTY (AND BLUNDERS)"}, {0, 0}};
 static const help_t HELP_DICE[] = {{"KEYS", "PLAY THE SOUND"}, {"PLAY", "ROLL A NEW SOUND"},
                                    {"EDIT ENV LFO FX", "LOCK A PART"}, {"PRESET", "KIND OF DIE"},
@@ -1977,7 +1992,7 @@ static const help_t HELP_SNAKE[] = {{"PAD", "STEER"}, H_SEQ, {0, 0}};
 static const help_t HELP_CUBE[] = {{"LEFT RIGHT", "MOVE"}, {"F5 OR UP", "TURN"}, {"DOWN", "FASTER"},
                                    {"G5", "DROP IT"}, {"K1", "TEMPO (BY THE LEVEL)"}, {"K2", "CHANCE (NOTES THAT PLAY)"},
                                    {"K3", "SOUND"}, {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"},
-                                   {0, 0}};
+                                   {"OCT- OCT+", "OCTAVE"}, {0, 0}};
 static const help_t HELP_MINES[] = {{"PAD", "MOVE"}, {"F5", "OPEN A SQUARE"}, {"HOLD F5", "FLAG IT"}, H_SEQ, {0, 0}};
 static const help_t HELP_GOLF[] = {{"UP DOWN", "PICK A COURSE"}, {"LEFT RIGHT", "AIM (HOLD: FASTER)"},
                                    {"HOLD F5", "POWER, LET GO TO PUTT"}, H_FX, {0, 0}};
@@ -1985,10 +2000,12 @@ static const help_t HELP_PINBALL[] = {{"LEFT (F3)", "LEFT FLIPPERS"}, {"G5 OR RI
                                       {"HOLD F#5", "FLIPPERS FLIP ON THE BEAT"},
                                       {"HOLD F5", "PLUNGER, LET GO TO LAUNCH"}, {"UP", "NUDGE"}, H_FX, {0, 0}};
 static const help_t HELP_BOUNCE[] = {{"PAD", "ROLL THE MARBLE"}, {"K1", "TEMPO"}, {"K2", "SPEED"}, {"K3", "SOUND"},
-                                     {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
+                                     {"K4", "EFFECTS VOLUME"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"},
+                                     {"OCT- OCT+", "OCTAVE"}, {0, 0}};
 static const help_t HELP_LIGHTS[] = {{"PAD", "MOVE"}, {"F5", "FLIP A LIGHT AND ITS NEIGHBOURS"}, H_FX, {0, 0}};
 static const help_t HELP_DROP[] = {{"ANY KEY", "DROP A BALL FROM THERE"}, {"K1 - K4", "TILT THE PLATFORMS"},
-                                   {"SELECT", "THE BOARD"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"}, {0, 0}};
+                                   {"SELECT", "THE BOARD"}, {"PRESET", "SCALE"}, {"ALGO", "KEY"},
+                                   {"OCT- OCT+", "OCTAVE"}, {0, 0}};
 static const help_t HELP_POOL[] = {{"LEFT RIGHT", "AIM (HOLD: FASTER)"}, {"UP DOWN", "AIM FINELY"},
                                    {"HOLD F5", "POWER, LET GO TO SHOOT"}, H_SEQ, {0, 0}};
 static const help_t HELP_FOUR[] = {{"LEFT RIGHT", "PICK A COLUMN"}, {"F5", "DROP"}, H_SEQ,
@@ -2488,6 +2505,12 @@ int app_expect(const char *what, int *got)
             if (sw.b[k].on && sw.n_alive > 1)
                 sw_catch(k), n--;
         *got = 0;
+    } else if (!strcmp(what, "key_root")) {   /* the key's root, as a MIDI note */
+        *got = key_root();
+    } else if (!strncmp(what, "pitch", 5)) {   /* pitchN: note N as it plays now (the octave, the C2 .. C6 rule) */
+        *got = k_pitch(atoi(what + 5), K_NSLOT);
+    } else if (!strcmp(what, "bass")) {
+        *got = h_bass();
     } else if (!strcmp(what, "so_seq")) {   /* how many places the playhead has sounded */
         int i;
         *got = 0;

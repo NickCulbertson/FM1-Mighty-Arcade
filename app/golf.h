@@ -44,7 +44,6 @@ static const int16_t GW4[][4] = {{130, 34, 130, 150}};
 static const int16_t GW5[][4] = {{56, 140, 140, 140}};
 static const int16_t GW3[][4] = {{40, 132, 94, 132}, {146, 132, 200, 132}};
 static const int16_t GZ4[][5] = {{1, 36, 70, 74, 50}, {1, 150, 150, 60, 50}};
-static const int16_t GB4[][2] = {{110, 176}};
 static const int16_t GZ5[][5] = {{4, 56, 66, 128, 60}};
 static const int16_t GZ6[][5] = {{2, 16, 108, 150, 46}};
 static const int16_t GB7[][2] = {{70, 92}, {120, 70}, {170, 92}, {95, 132}, {145, 132}, {120, 172}, {70, 172}, {170, 172}};
@@ -59,7 +58,8 @@ static const gf_hole_t GF_HOLES[9] = {   /* course 1: THE GARDEN (the first nine
                                          /* (no bumpers on the first two: their L shapes block the straight line
                                           * already, Nick 19 Nov 2026) */
     {"THE WINDMILL", 3, 120, 212, 120, 62, GP3, GN(GP3), GW3, GN(GW3), 0, 0, 0, 0, 120, 132, 24, 0, 0, 0, 0, 0},
-    {"SAND TRAP", 3, 40, 212, 196, 58, GPW, GN(GPW), GW4, GN(GW4), GZ4, GN(GZ4), GB4, GN(GB4), 0, 0, 0, 0, 0, 0, 0, 0},
+    /* (no bumper on the sand trap: its little post went, Nick 23 Nov 2026) */
+    {"SAND TRAP", 3, 40, 212, 196, 58, GPW, GN(GPW), GW4, GN(GW4), GZ4, GN(GZ4), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"THE HILL", 3, 76, 212, 164, 58, GP5, GN(GP5), GW5, GN(GW5), GZ5, GN(GZ5), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"WATER HAZARD", 3, 56, 210, 56, 64, GPW, GN(GPW), 0, 0, GZ6, GN(GZ6), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {"BUMPER ALLEY", 3, 40, 212, 200, 52, GPW, GN(GPW), 0, 0, 0, 0, GB7, GN(GB7), 0, 0, 0, 0, 0, 0, 0, 0},

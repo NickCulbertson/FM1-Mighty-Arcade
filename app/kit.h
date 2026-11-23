@@ -777,6 +777,20 @@ typedef struct {
     eng_params_t p;
 } kslot_t;
 static kslot_t k_slot[K_NSLOT];
+/* OCT- OCT+ (app.c's oct_shift, 0 in DICE SYNTH): every note an octave down or up, but the drums' (k_drum), and never
+ * past C2 .. C6: a note the octave would take below C2 or above C6 stays where it was (Nick, 22 Nov 2026: too deep
+ * on the FM-1's speaker, too shrill above) */
+static int8_t k_oct;
+static uint8_t k_drum[K_NSLOT];
+#define K_LO 36                          /* C2 */
+#define K_HI 84                          /* C6 */
+static int32_t k_pitch(int32_t note, uint32_t slot)   /* slot K_NSLOT: a note with no slot (k_off's): never a drum */
+{
+    int32_t n = note + 12 * k_oct;
+    if ((slot < K_NSLOT && k_drum[slot]) || n < K_LO || n > K_HI)
+        return note;
+    return n;
+}
 static eng_params_t k_main;              /* the LFO, the filter, the effects: the UI sets them, the render reads them */
 static uint8_t k_main_slot;              /* the slot whose sound eng_set gets (a note with no slot of its own) */
 static void k_slot_set(uint32_t slot, const ksnd_t *k)   /* built aside, then handed to the audio in one locked step:
@@ -785,6 +799,7 @@ static void k_slot_set(uint32_t slot, const ksnd_t *k)   /* built aside, then ha
 {
     kslot_t n, *s = &k_slot[slot % K_NSLOT];
     uint32_t f;
+    k_drum[slot % K_NSLOT] = k == &KSND[S_KICK] || k == &KSND[S_SNARE] || k == &KSND[S_HAT];
     n.s = k->s;
     n.p = k_main;
     kp_sound(&n.p, k);
@@ -799,6 +814,12 @@ static void k_slot_rel(uint32_t slot, float secs)
     kslot_t *s = &k_slot[slot % K_NSLOT];
     if (s->p.rel > secs)
         s->p.rel = secs;
+}
+
+/* a slot's level, scaled from its sound's own */
+static void k_slot_gain(uint32_t slot, float g)
+{
+    k_slot[slot % K_NSLOT].p.gain *= g;
 }
 
 enum { KE_ON = 1, KE_OFF, KE_ALLOFF, KE_KILL };
@@ -838,9 +859,9 @@ static void k_on(uint32_t t, int32_t note, uint32_t vel, uint32_t slot, float se
         if (!vel)
             vel = 1;
     }
-    k_push(t, KE_ON, note, vel, slot, secs > 0.0f ? (int32_t)(secs * SR_F) : -1);
+    k_push(t, KE_ON, k_pitch(note, slot % K_NSLOT), vel, slot, secs > 0.0f ? (int32_t)(secs * SR_F) : -1);
 }
-static void k_off(uint32_t t, int32_t note) { k_push(t, KE_OFF, note, 0, 0, 0); }
+static void k_off(uint32_t t, int32_t note) { k_push(t, KE_OFF, k_pitch(note, K_NSLOT), 0, 0, 0); }
 static uint32_t k_at(float secs_ahead) { return k_now() + (uint32_t)(secs_ahead * SR_F); }
 
 /* the render's side: what came in, in time order, then each at its sample */
