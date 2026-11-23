@@ -1,0 +1,8 @@
+{
+  "what": "Mighty Arcade is 18 music-making games each built around a generative sequencer. Chess, Solitaire, Retro Games and more. The board, cards, balls and baddies all work together to make music while you play.",
+  "author": "Moby Pixel",
+  "kinds": ["other"],
+  "play": "https://nickculbertson.github.io/FM1-Mighty-Arcade/emu/",
+  "image": "docs/card.png",
+  "color": "#6EE1FF"
+}
